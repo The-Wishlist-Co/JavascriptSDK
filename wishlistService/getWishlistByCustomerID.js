@@ -1,20 +1,37 @@
 
 const axiosInstance=require('../axios/AxiosInstance');
 require('dotenv').config();
+
 function getWishlistByCustomerID(obj) {
-axiosInstance.get(`/wsservice/api/wishlists/customer/${obj.customerID}`, 
-{headers: {
-  'Content-Type': 'application/json', 
-  'Authorization':  `Bearer ${obj.token}`,
-  'X-TWC-Tenant': obj.tenant
-}})
-  .then(response => {
-    obj.onSuccess(response.data);
-  })  
-  .catch(error => {
-    obj.onError(error?.response||error);
-  });
+      // Include pagination parameters in the request
+    const params = {
+        pageSize: obj.pageSize || 10, // Default page size to 10 if not specified
+        lastItemId: obj.lastItemId || '' // Default to an empty string if not provided
+    };
+  
+    axiosInstance.get(`/wsservice/api/wishlists/customer/${obj.customerID}`, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${obj.token}`,
+            'X-TWC-Tenant': obj.tenant
+        },
+        params: params // Pass pagination parameters as part of the query
+    })
+    .then(response => {
+        if (obj.onSuccess) {
+            obj.onSuccess(response.data);
+        }
+    })
+    .catch(error => {
+        if (obj.onError) {
+            obj.onError(error?.response || error);
+        }
+    });
 }
+
+// Exporting the function to use elsewhere
+module.exports = getWishlistByCustomerID;
+
 // let onSuccess = function (lists) {
 //     // Successfully fetched all lists 
 //     console.log("Fetched all Lists", lists);
@@ -34,4 +51,3 @@ axiosInstance.get(`/wsservice/api/wishlists/customer/${obj.customerID}`,
 //     customerID
 // });
 
-module.exports=getWishlistByCustomerID
