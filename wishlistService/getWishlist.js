@@ -1,4 +1,5 @@
 // /api/wishlists
+// Get wishlist by wishlistID or wishlistRef
 // This API supercedes the individual APIs for get wishlist by ID and get Wishlist by Ref and allows either ref or ID to be used.
 
 require('dotenv').config();
