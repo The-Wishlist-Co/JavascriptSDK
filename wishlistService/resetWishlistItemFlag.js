@@ -1,3 +1,6 @@
+// Reset the notifyMe and preRelease flag in the wishlist items with given productRef or variantRef
+// You can reset the flags based on productRef OR variantRef but not possbile to update both flags in a single call- you have to do them separately.
+// Must pass either 'productRef' OR 'variantRef' AND either 'notifyMe' OR 'preRelease'
 
 const axiosInstance = require('../axios/AxiosInstance');
 require('dotenv').config();
