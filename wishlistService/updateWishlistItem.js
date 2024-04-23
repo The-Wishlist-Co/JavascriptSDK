@@ -1,4 +1,6 @@
 // /api/wishlist/items
+// This api allows update of wishlist item by ID or Ref, and supercedes the individual endpoints for updateWishlistItemByID and updateWishlistItemByRef
+
 const axiosInstance=require('../axios/AxiosInstance');
 
 function updateWishlistItem(obj) {
