@@ -1,4 +1,5 @@
-// 502 bad gateway
+// This API supercedes the individual API delete customer by ID, and allows deletion by either ID or Ref
+
 const axiosInstance=require('../axios/AxiosInstance')
  
 function deleteCustomer(obj) {
