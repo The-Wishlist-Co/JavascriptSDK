@@ -2,7 +2,7 @@
 
 const axiosInstance=require('../axios/AxiosInstance');
 require('dotenv').config();
-function getWishlistByCust(obj) {
+function getWishlistByCustomer(obj) {
 
   const params = new URLSearchParams();
     
@@ -39,4 +39,4 @@ axiosInstance.get(`/wsservice/api/wishlists/lookup?${params.toString()}`,
 //     tenant,   
 //     customerID
 // });
-module.exports=getWishlistByCust
+module.exports=getWishlistByCustomer
