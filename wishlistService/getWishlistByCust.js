@@ -1,8 +1,8 @@
-// Get a wishlist by customer ID or customer Ref
+// Get all wishlists for a given customer by customer ID or customer Ref
 
 const axiosInstance=require('../axios/AxiosInstance');
 require('dotenv').config();
-function searchByCustomerID(obj) {
+function getWishlistByCust(obj) {
 
   const params = new URLSearchParams();
     
@@ -39,4 +39,4 @@ axiosInstance.get(`/wsservice/api/wishlists/lookup?${params.toString()}`,
 //     tenant,   
 //     customerID
 // });
-module.exports=searchByCustomerID
+module.exports=getWishlistByCust
