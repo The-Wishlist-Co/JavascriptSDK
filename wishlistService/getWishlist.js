@@ -1,4 +1,6 @@
 // /api/wishlists
+// This API supercedes the individual APIs for get wishlist by ID and get Wishlist by Ref and allows either ref or ID to be used.
+
 require('dotenv').config();
 const axiosInstance=require('../axios/AxiosInstance');
 
