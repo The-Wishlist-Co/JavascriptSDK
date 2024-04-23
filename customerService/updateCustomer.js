@@ -1,4 +1,5 @@
 //   /wsservice/api/wishlist/items
+//  Update customer by either ID or Ref.  Supercedes the individual update customer by ID and update customer by Ref apis
 
 const axiosInstance=require('../axios/AxiosInstance');
 
