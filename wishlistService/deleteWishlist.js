@@ -1,3 +1,5 @@
+// This API supercedes the individual delete wishlist by ID and delete wishlist by Ref and provides a single endpoint to delete by either ID or Ref.
+
 const axiosInstance=require('../axios/AxiosInstance');
 require('dotenv').config();
 function deleteWishlist(obj) {
