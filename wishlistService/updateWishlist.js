@@ -1,3 +1,4 @@
+// This API endpoint supercedes the individual APIS update wishlist by ID and update Wishlsit by Ref and provides a single endpoint to do either
 
 const axiosInstance=require('../axios/AxiosInstance');
 
