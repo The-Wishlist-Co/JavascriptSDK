@@ -1,19 +1,37 @@
-const axiosInstance=require('../axios/AxiosInstance');
+const axiosInstance = require('../axios/AxiosInstance');
 require('dotenv').config();
+
 function getWishlistByID(obj) {
-axiosInstance.get(`/wsservice/api/wishlists/${obj.wishlistID}`, 
-{headers: {
-  'Content-Type': 'application/json', 
-  'Authorization':  `Bearer ${obj.token}`,
-  'X-TWC-Tenant': obj.tenant
-}})
-  .then(response => {
-    obj.onSuccess(response.data);
-  })  
-  .catch(error => {
-    obj.onError(error?.response||error);
-  });
+    // Check if pagination parameters are provided and include them
+    const params = {};
+    if (obj.pageSize) {
+        params.pageSize = obj.pageSize;
+    }
+    if (obj.lastItemId) {
+        params.lastItemId = obj.lastItemId;
+    }
+
+    axiosInstance.get(`/wsservice/api/wishlists/${obj.wishlistID}`, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${obj.token}`,
+            'X-TWC-Tenant': obj.tenant
+        },
+        params: params  // Include pagination parameters in the request if any
+    })
+    .then(response => {
+        if (obj.onSuccess) {
+            obj.onSuccess(response.data);
+        }
+    })
+    .catch(error => {
+        if (obj.onError) {
+            obj.onError(error?.response || error);
+        }
+    });
 }
+
+module.exports = getWishlistByID;
 // let onSuccess = function (lists) {
 //     // Successfully fetched all lists 
 //     console.log("Fetched all Lists", lists);
@@ -32,5 +50,3 @@ axiosInstance.get(`/wsservice/api/wishlists/${obj.wishlistID}`,
 //     tenant,   
 //     wishlistID
 // });
-
-module.exports=getWishlistByID
