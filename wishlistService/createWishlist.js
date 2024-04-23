@@ -1,7 +1,7 @@
 
 const axiosInstance=require('../axios/AxiosInstance');
 
-function createNewWishlist(obj) {
+function createWishlist(obj) {
 axiosInstance.post(`/wsservice/api/wishlists`, obj.newWishlistBody,
 {headers: {
   'Content-Type': 'application/json', 
@@ -16,4 +16,4 @@ axiosInstance.post(`/wsservice/api/wishlists`, obj.newWishlistBody,
   });
 }
 
-module.exports=createNewWishlist;
+module.exports=createWishlist;
