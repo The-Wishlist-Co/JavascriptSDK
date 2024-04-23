@@ -8,9 +8,9 @@ const getWishlistItemByID=require("./wishlistService/getWishlistItemByID")
 const getWishlistItemByRef=require("./wishlistService/getWishlistItemByRef")
 const getWishlistItem=require("./wishlistService/getWishlistItem")
 const updateWishlistItemByRef=require('./wishlistService/updateWishlistItemByRef');
-const searchWishlist=require("./wishlistService/searchWishlist")
+const getWishlistByCustomer=require("./wishlistService/getWishlistByCustomer")
 const createWishlistItem = require('./wishlistService/createWishlistItem');
-const createNewWishlist=require('./wishlistService/createNewWishlist');
+const createWishlist=require('./wishlistService/createWishlist');
 const updateWishlist=require('./wishlistService/updateWishlist');
 const updateWishlistByID=require('./wishlistService/updateWishlistByID');
 const updateWishlistByRef=require('./wishlistService/updateWishlistByRef');
@@ -22,6 +22,8 @@ const deleteWishlist=require('./wishlistService/deleteWishlist');
 const deleteAllWishlist=require('./wishlistService/deleteAllWishlist');
 const deleteWishlistByID=require("./wishlistService/deleteWishlistByID");
 const deleteWishlistByRef=require('./wishlistService/deleteWishlistByRef');
+const getCustomersWithFlag=require('./WishlistService/getCustomersWithFlag');
+const resetWishlistItemFlag=require('./WishlistService/resetWishlistItemFlag');
 
 const customerLookup=require('./customerService/customerLookup');
 const getCustomerByID=require('./customerService/getCustomerByID');
@@ -34,57 +36,6 @@ const deleteCustomer=require('./customerService/deleteCustomer');
 const deleteCustomerByID=require('./customerService/deleteCustomerByID');
 const createBulkCustomers=require('./customerService/createBulkCustomers');
 
-const createNewStock=require('./inventoryService/createNewStock');
-const getVariantStock=require('./inventoryService/getVariantStock');
-const getStockLevel=require('./inventoryService/getStockLevel');
-const updateStock=require('./inventoryService/updateStock');
-const createNewLocation=require('./inventoryService/createNewLocation');
-const getLocation=require('./inventoryService/getLocation');
-const updateLocation=require('./inventoryService/updateLocation');
-const updateLocationByID=require('./inventoryService/updateLocationByID');
-const updateLocationByRef=require('./inventoryService/updateLocationByRef');
-const deleteLocation=require('./inventoryService/deleteLocation');
-const validateLocation=require('./inventoryService/validateLocation');
-const createBulkLocations=require('./inventoryService/createBulkLocations');
-const updateStockByID=require('./inventoryService/updateStockByID');
-const updateStockByRef=require('./inventoryService/updateStockByRef');
-const validateStock=require('./inventoryService/validateStock');
-const getStockLevelByID=require('./inventoryService/getStockLevelByID');
-const createBulkStock=require('./inventoryService/createBulkStock');
-
-const createNewBatch=require('./impexService/createNewBatch');
-const updateBatch=require('./impexService/updateBatch');
-const getBatch=require('./impexService/getBatch');
-const changeBatchState=require('./impexService/changeBatchState');
-const batchLookup=require('./impexService/batchLookup');
-const resourceLookup=require('./impexService/resourceLookup');
-const createResource=require('./impexService/createResource');
-
-const createPrice=require('./priceService/createPrice');
-const getPrice=require('./priceService/getPrice');
-const updatePrice=require('./priceService/updatePrice');
-const updatePriceByID=require('./priceService/updatePriceByID');
-const updatePriceByRef=require('./priceService/updatePriceByRef');
-const validatePrice=require('./priceService/validatePrice');
-const deletePrice=require('./priceService/deletePrice');
-const getAllPrices=require('./priceService/getAllPrices');
-
-const createNewOrder=require('./orderService/createNewOrder');
-const getOrder=require('./orderService/getOrder');
-const updateOrder=require('./orderService/updateOrder');
-const updateOrderByID=require('./orderService/updateOrderByID');
-const updateOrderByRef=require('./orderService/updateOrderByRef');
-const searchOrder=require('./orderService/searchOrder');
-const validateOrder=require('./orderService/validateOrder');
-const getOrderItems=require('./orderService/getOrderItems');
-const createOrderItems=require('./orderService/createOrderItems');
-const updateOrderItems=require('./orderService/updateOrderItems');
-const updateOrderItemsByID=require('./orderService/updateOrderItemsByID');
-const updateOrderItemsByRef=require('./orderService/updateOrderItemsByRef');
-const searchOrderItemsEntry=require('./orderService/searchOrderItemsEntry');
-const deleteOrderItemsEntry=require('./orderService/deleteOrderItemsEntry');
-const validateOrderItems=require('./orderService/validateOrderItems');
-
 const data=require('./data/data')
 
 const javascriptAPIs = {
@@ -93,8 +44,8 @@ const javascriptAPIs = {
     getWishlistByCustomerRef,
     getWishlist,
     getWishlistByRef,
-    searchWishlist,
-    createNewWishlist,
+    getWishlistByCustomer, 
+    createWishlist,
     updateWishlist,
     updateWishlistByID,
     updateWishlistByRef,
@@ -111,103 +62,20 @@ const javascriptAPIs = {
     updateWishlistItemByRef,
     deleteWishlistItemByID,
     deleteWishlistItemByRef,
+    getCustomersWithFlag,
+    resetWishlistItemFlag,
 
-    getProductByID,
-    getProductByRef,
-    getProductByRef2,
-    productSearch,
-    validateProductID,
-    validateProductRef,
-    validateProductRequest,
-    createNewProduct,
-    updateProduct,
-    updateProductByID,
-    updateProductByRef,
-    createBulkProduct,
-    getEmailResultData,
-    getMockChartData,
-    deleteProductByID,
-    deleteProductByRef,
-    getVariantByID,
-    getProductVariants,
-    getVariantByVariantID,
-    getVariantByRef,
-    getVariantByRef2,
-    createProductVariant,
-    updateProductVariant,
-    updateVariantByID,
-    updateVariantByRef,
-    updateVariantPrice,
-    validateProductVariant,
-    deleteVariantByID,
-    deleteVariant,
-    deleteVariantByRef,
-
-    createNewCustomer,
+    createCustomer,
     updateCustomer,
     updateCustomerByRef,
     updateCustomerByID,
     customerLookup,
     getCustomerByID,
     getCustomerByRef,
-    addCustomerAddress,
     deleteCustomer,
     validateCustomer,
     deleteCustomerByID,
-    deleteCustomerAddress,
-    createBulkCustomers,
-    syncEmarsysCustomer,
-    
-    getLocation,
-    createNewLocation,
-    updateLocation,
-    updateLocationByID,
-    updateLocationByRef,
-    deleteLocation,
-    validateLocation,
-    createBulkLocations,
-    createNewStock,
-    getVariantStock,
-    getStockLevel,
-    getStockLevelByID,
-    updateStock,
-    updateStockByID,
-    updateStockByRef,
-    validateStock,
-    createBulkStock,
-
-    createNewBatch,
-    updateBatch,
-    getBatch,
-    changeBatchState,
-    batchLookup,
-    resourceLookup,
-    createResource,
-
-    createPrice,
-    getPrice,
-    updatePrice,
-    updatePriceByID,
-    updatePriceByRef,
-    validatePrice,
-    deletePrice,
-    getAllPrices,
-
-    createNewOrder,
-    getOrder,
-    updateOrder,
-    updateOrderByID,
-    updateOrderByRef,
-    searchOrder,
-    validateOrder,
-    getOrderItems,
-    createOrderItems,
-    updateOrderItems,
-    updateOrderItemsByID,
-    updateOrderItemsByRef,
-    searchOrderItemsEntry,
-    deleteOrderItemsEntry,
-    validateOrderItems,
+    createBulkCustomers
 };
   let onSuccess = function (lists) {
     // Successfully fetched all lists 
@@ -242,60 +110,7 @@ const customerID= 'cfa7098d-ef5e-4404-87c7-4050e1bee890';
 const customerRef= 'AfzalB791'
 const addressID='ca9dde30-8d53-4ef2-a557-9cb8e784a2ea';
 
-// const productID="78478311-0d6f-4b5f-8102-8d04b5c3ebd4";
-// const productID="402bbcc3-68d6-4507-8800-aa37846f64ac";
-// const productID='7bc473fc-6f3f-469b-8c0b-bf0445e083eb'
-const productID="7a8dcd86-706b-4c91-bdf7-73099d07b1e2";
-// const productID='78478311-0d6f-4b5f-8102-8d04b5c3ebd4';
-// const stockID="c66f285e-c5a0-4293-813b-3d5743df3bff";
-// const stockID="6f1b2385-b8a7-4a91-97f5-8f75650e2d7d"
-const stockID="c138ed4b-26a8-4921-b523-56e291daa65c";
-// const stockRef="STOCK1232"
-// const stockID='ffa0ec06-6852-40fb-bcee-0dc65dfafbe9';
-const stockRef='STOCK795'
-// const variantID="0b312f0d-2610-4bb0-8ff1-7e48805ad7a3"
-// const variantID="edf30086-c9d8-4f5d-9a51-42c5f3cdb78b";
-// const variantID='e33d5325-fca8-4799-b58e-cc9779017127';
-// const variantID='53684834-b363-4b2d-9306-078ede55b1d2';
-const variantID="6b77f7b1-c8d0-4d8b-8c7a-0c6e4a7f7b8b";
-// const priceID= "36788fe9-dd57-45c7-a468-6d202f6fa632";
-const priceID= 'eed8064c-ec8b-4b64-83c2-b4c5fb10087d';
-const priceRef= 'PRICE243';
-const orderID='4edf1cee-e9b8-42d1-ab27-6f2c63ca480f';
-// const orderID="e8206821-cf2b-4504-8c4f-6ee1aaad9bab";
-const orderRef='ORDER7914';
-// const entryID='cdb33193-0e14-4ebe-9999-23ea454dafa8';
-const entryID= '9ee3dce9-77cd-4c2c-9c00-86fe94ae0fbb';
-const entryRef= 'ENTRY791';
-// const variantRef="TEST1234";
-const variantRef= 'VARIANT1234';
-const gtin = "1000000000000";
-// const productRef="PRD6237996";
-// const productRef="10000008888jjj"
-// const productRef="PRD6237986";
-// const productRef='PRD6237980';
-// const productRef= "PRD6237955"
-const productRef='PRD6237996'
-//const productRef="PRD6237978"
-// const wishlistItemID = "2950c3b3-9381-40b0-b596-469047012a2e";
 
-
-// const locationRef='ref1';
-// const locationID='422d526d-fc64-4b78-a56a-e40544425f18';
-// const locationRef= 'LOC43821'
-// const locationRef="LOC791"
-const locationRef="LOC4382";
-// const locationRef="LOC43821";
-const locationID="3a19b4d6-56b4-4b5d-80e7-de595f9d571a";
-// const locationID='98c8aa91-8a13-4053-89e7-eaadc70a6ef5';
-const batchID="6d15b1e5-7e08-4014-b8b9-0fe813bcc26c";
-// const batchID='a55b626c-d458-47ed-9fca-7ec431498d73';
-// const batchRef= 'BATCH791';
-const batchRef= 'BATCH792';
-const state="READY";
-// const state="CREATED"
-// const state="PROCESSING"
-// const state ="ABORTED";
 const emailRequest=true;
 const requestID="string";
 
@@ -314,28 +129,6 @@ const createWishlistItembody=data.createWishlistItembody
 const updateWishlistItemBody=data.updateWishlistItemBody;
 const createCustomerBody=data.createCustomerBody;
 const updateCustomerBody=data.createCustomerBody;
-const newAddress=data.newAddress;
-const newProductBody=data.newProductBody;
-const updateProductBody=data.newProductBody;
-const productVariantBody=data.productVariantBody;
-const updateProductVariantBody=data.productVariantBody;
-const variantPrice=data.variantPrice;
-const newStockBody=data.newStockBody;
-const updateStockBody=data.newStockBody;
-const newLocationBody=data.newLocationBody;
-const updateLocationBody=data.newLocationBody;
-const newBatchBody=data.newBatchBody;
-const updateBatchBody=data.newBatchBody;
-const bulkProductBody=data.bulkProductBody;
-const createBulkCustomerBody=data.createBulkCustomerBody;
-const emarsysCustomerBody=data.emarsysCustomerBody;
-const bulkLocationBody=data.bulkLocationBody;
-const bulkStockBody=data.bulkStockBody;
-const newResourceBody=data.newResourceBody;
-const priceBody=data.priceBody;
-const updatePriceBody=data.updatePriceBody;
-const createOrderBody=data.createOrderBody;
-const orderItemsBody=data.orderItemsBody;
 
 javascriptAPIs.getCustomerByID({
     onSuccess,
