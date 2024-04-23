@@ -1,9 +1,9 @@
-// This API supercedes the individual get wishlist Item by ID and get wishlist item by Ref and provides a single endpoint to do either. 
+// This API gets all wishlist items by either wishlist ID or wishlist Ref
 // Note that it is unlikely that a wishlist item ref will rarely be used.
 
 const axiosInstance=require('../axios/AxiosInstance');
 // require('dotenv').config();
-function getWishlistItem(obj) {
+function getWishlistItems(obj) {
   const params = new URLSearchParams(); 
   obj.wishlistID&&params.append('id',obj.wishlistID);
   obj.wishlistRef&&params.append('wishlistRef', obj.wishlistRef);
@@ -39,4 +39,4 @@ axiosInstance.get(`/wsservice/api/wishlist/items?${params.toString()}`,
 //     tenant,
 //     wishlistID
 // });
-module.exports=getWishlistItem
+module.exports=getWishlistItems
