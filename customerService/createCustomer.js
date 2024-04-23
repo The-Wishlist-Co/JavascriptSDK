@@ -2,7 +2,7 @@
 
 const axiosInstance=require('../axios/AxiosInstance');
 
-function createNewCustomer(obj) {
+function createCustomer(obj) {
 axiosInstance.post(`/customerservice/api/v2/customers/`, obj.createCustomerBody,
 {headers: {
   'Content-Type': 'application/json', 
@@ -17,4 +17,4 @@ axiosInstance.post(`/customerservice/api/v2/customers/`, obj.createCustomerBody,
   });
 }
 
-module.exports=createNewCustomer;
+module.exports=createCustomer;
