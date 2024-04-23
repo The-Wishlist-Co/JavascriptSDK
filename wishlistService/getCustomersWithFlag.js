@@ -1,18 +1,26 @@
+//Returns the wishlist customers which are enabled notifyMe or preRelease.
+// Retailer can filter the customers by providing the  productRef OR variantRef. Also possible without providing those indetifiers. 
+// Either 'notifyMe' or 'preRelease' must be passed in the request. 
+// If the customers does not exist, this method returns a empty list
+
 const axiosInstance = require('../axios/AxiosInstance');
 require('dotenv').config();
 
 function getCustomersWithFlag(obj) {
     // Prepare query parameters
     const params = {};
+    // Check if either productRef or variantRef is provided and add to params
     if (obj.productRef) {
         params.productRef = obj.productRef;
     } else if (obj.variantRef) {
         params.variantRef = obj.variantRef;
     }
-    if (obj.notifyMe) {
-        params.notifyMe = obj.notifyMe.toString(); // Assuming notifyMe is a boolean, convert to string if necessary
-    } else if (obj.preRelease) {
-        params.preRelease = obj.preRelease.toString(); // Same assumption as above
+
+    // Assuming notifyMe or preRelease must be specified, add them to params
+    if (obj.notifyMe !== undefined) {  // Check for undefined to allow boolean false
+        params.notifyMe = obj.notifyMe.toString(); // Convert boolean to string if necessary
+    } else if (obj.preRelease !== undefined) {
+        params.preRelease = obj.preRelease.toString();
     }
 
     axiosInstance.get('/api/wishlist/items/getCustomersWithFlag', {
