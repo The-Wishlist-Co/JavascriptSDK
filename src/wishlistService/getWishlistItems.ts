@@ -25,21 +25,3 @@ export function getWishlistItems(obj) {
       obj.onError(error?.response || error);
     });
 }
-// let onSuccess = function (lists) {
-//     // Successfully fetched all lists
-//     console.log("Fetched all Lists", lists);
-// }
-// // Define error callback
-// let onError = function (error) {
-//     console.log("Error while fetching all Lists", error);
-// }
-// const token = process.env.token;
-// const tenant = "sunils_electronics";
-// const wishlistID = "ff95e17a-2c47-472d-bcfc-244f2e1b2b0d";
-// getWishlistItemsByWishlistId({
-//     onSuccess,
-//     onError,
-//     token,
-//     tenant,
-//     wishlistID
-// });

@@ -27,24 +27,3 @@ export function getWishlistByCustomerID(obj) {
       }
     });
 }
-
-// Exporting the function to use elsewhere
-
-// let onSuccess = function (lists) {
-//     // Successfully fetched all lists
-//     console.log("Fetched all Lists", lists);
-// }
-// // Define error callback
-// let onError = function (error) {
-//     console.log("Error while fetching all Lists", error);
-// }
-// const token = process.env.token;
-// const tenant = "sunils_electronics";
-// const customerID = "98d9a379-c1ab-40b0-a044-b2cd73e27551";
-// getWishlistByCustomerID({
-//     onSuccess,
-//     onError,
-//     token,
-//     tenant,
-//     customerID
-// });

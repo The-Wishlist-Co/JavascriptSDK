@@ -17,21 +17,3 @@ export function getWishlistItemByRef(obj) {
       obj.onError(error?.response || error);
     });
 }
-// let onSuccess = function (lists) {
-//     // Successfully fetched all lists
-//     console.log("Fetched all Lists", lists);
-// }
-// // Define error callback
-// let onError = function (error) {
-//     console.log("Error while fetching all Lists", error);
-// }
-// const token = process.env.token;
-// const tenant = "sunils_electronics";
-// const wishlistItemRef = "Item 6";
-// getWishlistItemByRef({
-//     onSuccess,
-//     onError,
-//     token,
-//     tenant,
-//     wishlistItemRef
-// });
