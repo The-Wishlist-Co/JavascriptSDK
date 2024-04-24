@@ -20,7 +20,7 @@ export function resetWishlistItemFlag(obj) {
 
   axiosInstance
     .post(
-      "/api/wishlist/items/resetFlag",
+      "/wsservice/api/wishlist/items/resetFlag",
       {},
       {
         headers: {
