@@ -7,6 +7,9 @@ export function getWishlistByCustomer(obj) {
 
   obj.customerID && params.append("customerId", obj.customerID);
   obj.customerRef && params.append("customerRef", obj.customerRef);
+  if (obj.pageSize) params.append("pageSize", obj.pageSize);
+  if (obj.lastItemId) params.append("lastItemId", obj.lastItemId);
+
   axiosInstance
     .get(`/wsservice/api/wishlists/lookup?${params.toString()}`, {
       headers: {
