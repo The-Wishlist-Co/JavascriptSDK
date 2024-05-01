@@ -2,7 +2,8 @@
   "name": "twc",
   "version": "0.1.0",
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "docs": "typedoc ./src/index.ts --out docs -plugin typedoc-plugin-markdown"
   },
   "exports": {
     ".": {
@@ -25,6 +26,8 @@
   },
   "devDependencies": {
     "tsup": "^8.0.2",
+    "typedoc": "^0.25.13",
+    "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.4.5"
   }
 }
