@@ -1,5 +1,3 @@
-twc / [Exports](modules.md)
-
 ## Install
 
 ```
