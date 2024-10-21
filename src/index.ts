@@ -24,6 +24,7 @@ export * from "./wishlistService/deleteWishlistByID";
 export * from "./wishlistService/deleteWishlistByRef";
 export * from "./wishlistService/getCustomersWithFlag";
 export * from "./wishlistService/resetWishlistItemFlag";
+export * from "./wishlistService/getItemsPopularity";
 
 // Customer API
 export * from "./customerService/customerLookup";
