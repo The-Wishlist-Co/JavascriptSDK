@@ -1,6 +1,6 @@
-[twc](README.md) / Exports
+[@thewishlistco/twc](README.md) / Exports
 
-# twc
+# @thewishlistco/twc
 
 ## Table of contents
 

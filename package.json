@@ -25,7 +25,7 @@
       "typedoc-plugin-markdown": "^3.17.1",
       "typescript": "^5.4.5"
    },
-   "description": "```\r npm install twc\r ```",
+   "description": "npm install @thewishlistco/twc",
    "directories": {
       "doc": "docs"
    },

@@ -1,20 +1,20 @@
 ## Install
 
 ```
-npm install twc
+npm install @thewishlistco/twc
 ```
 
 or with yarn:
 
 ```
-yarn add twc
+yarn add @thewishlistco/twc
 ```
 
 ## Usage Example
 
 ```js
 // import the package and method
-import { getWishlist } from "twc";
+import { getWishlist } from "@thewishlistco/twc";
 
 // call the method
 getWishlist({
