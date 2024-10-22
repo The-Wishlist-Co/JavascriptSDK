@@ -1,6 +1,6 @@
 {
    "name": "@thewishlistco/twc",
-   "version": "0.1.2",
+   "version": "0.1.3",
    "scripts": {
       "build": "tsup",
       "docs": "typedoc ./src/index.ts --out docs -plugin typedoc-plugin-markdown"
