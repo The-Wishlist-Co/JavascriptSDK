@@ -1,33 +1,42 @@
 {
-  "name": "twc",
-  "version": "0.1.0",
-  "scripts": {
-    "build": "tsup",
-    "docs": "typedoc ./src/index.ts --out docs -plugin typedoc-plugin-markdown"
-  },
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+   "name": "@thewishlistco/twc",
+   "version": "0.1.0",
+   "scripts": {
+      "build": "tsup",
+      "docs": "typedoc ./src/index.ts --out docs -plugin typedoc-plugin-markdown"
+   },
+   "exports": {
+      ".": {
+         "require": "./dist/index.js",
+         "import": "./dist/index.mjs",
+         "types": "./dist/index.d.ts"
       }
-    }
-  },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "sideEffects": false,
-  "dependencies": {
-    "axios": "^1.6.8",
-    "dotenv": "^16.3.1"
-  },
-  "devDependencies": {
-    "tsup": "^8.0.2",
-    "typedoc": "^0.25.13",
-    "typedoc-plugin-markdown": "^3.17.1",
-    "typescript": "^5.4.5"
-  }
+   },
+   "main": "./dist/index.js",
+   "types": "./dist/index.d.ts",
+   "sideEffects": false,
+   "dependencies": {
+      "axios": "^1.6.8",
+      "dotenv": "^16.3.1"
+   },
+   "devDependencies": {
+      "tsup": "^8.0.2",
+      "typedoc": "^0.25.13",
+      "typedoc-plugin-markdown": "^3.17.1",
+      "typescript": "^5.4.5"
+   },
+   "description": "```\r npm install twc\r ```",
+   "directories": {
+      "doc": "docs"
+   },
+   "repository": {
+      "type": "git",
+      "url": "git+https://github.com/The-Wishlist-Co/JavascriptSDK.git"
+   },
+   "author": "",
+   "license": "ISC",
+   "bugs": {
+      "url": "https://github.com/The-Wishlist-Co/JavascriptSDK/issues"
+   },
+   "homepage": "https://github.com/The-Wishlist-Co/JavascriptSDK#readme"
 }

@@ -3,13 +3,13 @@ twc / [Exports](modules.md)
 ## Install
 
 ```
-npm install twc
+npm i @thewishlistco/twc
 ```
 
 or with yarn:
 
 ```
-yarn add twc
+yarn add @thewishlistco/twc
 ```
 
 ## Usage Example
