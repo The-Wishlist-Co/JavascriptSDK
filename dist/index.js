@@ -8,7 +8,7 @@ var axios__default = /*#__PURE__*/_interopDefault(axios);
 
 // src/axios/AxiosInstance.ts
 var axiosInstance = axios__default.default.create({
-  baseURL: "https://api.au-sandbox.thewishlist.io/services"
+  baseURL: "https://api.au-aws.thewishlist.io/services"
 });
 
 // src/wishlistService/getWishlistByID.ts

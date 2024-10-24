@@ -1,4 +1,4 @@
-const baseURL = "https://api.au-sandbox.thewishlist.io/services";
+const baseURL = "https://api.au-aws.thewishlist.io/services";
 
 async function getWishlistData(token, tenant, wishlistID) {
     const headers = {
