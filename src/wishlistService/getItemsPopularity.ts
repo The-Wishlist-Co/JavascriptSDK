@@ -22,7 +22,7 @@ export function getItemsPopularity(obj: {
    onError: (error: any) => void;
 }) {
    axiosInstance
-      .post(`/wsservice/api/wishlist/itemPopularity`, obj.itemsPopularityBody, {
+      .post(`/wsservice/api/wishlists/itemPopularity`, obj.itemsPopularityBody, {
          headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${obj.token}`,
