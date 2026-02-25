@@ -4,6 +4,7 @@
 // If the customers does not exist, this method returns a empty list
 
 import { axiosInstance } from "../axios/AxiosInstance";
+import { resolveToken } from "../auth/proxyAuth";
 
 /**
  * Retrieves the wishlist customers which are enabled for notifyMe or preRelease.
@@ -15,7 +16,7 @@ import { axiosInstance } from "../axios/AxiosInstance";
  * @param obj.variantRef - The variant reference to filter the customers by (either productRef or variantRef must be defined).
  * @param obj.notifyMe - A boolean indicating whether to retrieve customers with notifyMe enabled (either notifyMe or preRelease must be defined).
  * @param obj.preRelease - A boolean indicating whether to retrieve customers with preRelease enabled (either notifyMe or preRelease must be defined).
- * @param obj.token - The authentication token.
+ * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - The callback function to be called on successful retrieval of customers.
  * @param obj.onError - The callback function to be called if an error occurs during retrieval.
@@ -25,36 +26,37 @@ export function getCustomersWithFlag(obj: {
   variantRef?: string;
   notifyMe?: boolean;
   preRelease?: boolean;
-  token: string;
+  token?: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;
 }) {
-  // Prepare query parameters
   const params: any = {};
-  // Check if either productRef or variantRef is provided and add to params
   if (obj.productRef) {
     params.productRef = obj.productRef;
   } else if (obj.variantRef) {
     params.variantRef = obj.variantRef;
   }
 
-  // Assuming notifyMe or preRelease must be specified, add them to params
   if (obj.notifyMe !== undefined) {
-    // Check for undefined to allow boolean false
-    params.notifyMe = obj.notifyMe.toString(); // Convert boolean to string if necessary
+    params.notifyMe = obj.notifyMe.toString();
   } else if (obj.preRelease !== undefined) {
     params.preRelease = obj.preRelease.toString();
   }
 
-  axiosInstance
-    .get("/wsservice/api/wishlist/items/getCustomersWithFlag", {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obj.token}`,
-        "X-TWC-Tenant": obj.tenant,
-      },
-      params: params, // Pass query parameters
+  resolveToken(obj.token)
+    .then((token) => {
+      return axiosInstance.get(
+        "/wsservice/api/wishlist/items/getCustomersWithFlag",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "X-TWC-Tenant": obj.tenant,
+          },
+          params: params,
+        }
+      );
     })
     .then((response) => {
       if (obj.onSuccess) {

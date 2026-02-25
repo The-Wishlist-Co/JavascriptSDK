@@ -6,7 +6,64 @@ function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
 var axios__default = /*#__PURE__*/_interopDefault(axios);
 
-// src/axios/AxiosInstance.ts
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+
+// src/config.ts
+var config = null;
+function initTWC(cfg) {
+  config = cfg;
+}
+function getConfig() {
+  return config;
+}
+var cachedToken = null;
+var cacheExpiry = 0;
+var CACHE_TTL_MS = 4 * 60 * 1e3;
+function resolveToken(token) {
+  return __async(this, null, function* () {
+    var _a, _b, _c, _d;
+    if (token)
+      return token;
+    const config2 = getConfig();
+    if (!config2) {
+      throw new Error(
+        "TWC SDK: No token provided and proxy auth is not configured. Either pass a token directly or call initTWC({ shopDomain }) first."
+      );
+    }
+    if (cachedToken && Date.now() < cacheExpiry) {
+      return cachedToken;
+    }
+    const proxyUrl = `https://${config2.shopDomain}/apps/twc-sdk/auth/token`;
+    const response = yield axios__default.default.get(proxyUrl);
+    if (!((_a = response.data) == null ? void 0 : _a.success) || !((_c = (_b = response.data) == null ? void 0 : _b.data) == null ? void 0 : _c.access_token)) {
+      throw new Error(
+        `TWC SDK: Proxy auth failed \u2014 ${((_d = response.data) == null ? void 0 : _d.message) || "unknown error"}`
+      );
+    }
+    cachedToken = response.data.data.access_token;
+    cacheExpiry = Date.now() + CACHE_TTL_MS;
+    return cachedToken;
+  });
+}
 var axiosInstance = axios__default.default.create({
   baseURL: "https://api.au-aws.thewishlist.io/services"
 });
@@ -20,14 +77,15 @@ function getWishlistByID(obj) {
   if (obj.lastItemId) {
     params.lastItemId = obj.lastItemId;
   }
-  axiosInstance.get(`/wsservice/api/wishlists/${obj.wishlistID}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    },
-    params
-    // Include pagination parameters in the request if any
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(`/wsservice/api/wishlists/${obj.wishlistID}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-TWC-Tenant": obj.tenant
+      },
+      params
+    });
   }).then((response) => {
     if (obj.onSuccess) {
       obj.onSuccess(response.data);
@@ -43,18 +101,20 @@ function getWishlistByID(obj) {
 function getWishlistByCustomerID(obj) {
   const params = {
     pageSize: obj.pageSize || 10,
-    // Default page size to 10 if not specified
     lastItemId: obj.lastItemId || ""
-    // Default to an empty string if not provided
   };
-  axiosInstance.get(`/wsservice/api/wishlists/customer/${obj.customerID}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    },
-    params
-    // Pass pagination parameters as part of the query
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlists/customer/${obj.customerID}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        },
+        params
+      }
+    );
   }).then((response) => {
     if (obj.onSuccess) {
       obj.onSuccess(response.data);
@@ -70,18 +130,20 @@ function getWishlistByCustomerID(obj) {
 function getWishlistByCustomerRef(obj) {
   const params = {
     pageSize: obj.pageSize || 10,
-    // Default page size to 10 if not specified
     lastItemId: obj.lastItemId || ""
-    // Default to an empty string if not provided
   };
-  axiosInstance.get(`/wsservice/api/wishlists/customer/${obj.customerRef}/byref`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    },
-    params
-    // Pass pagination parameters as part of the query
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlists/customer/${obj.customerRef}/byref`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        },
+        params
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -91,12 +153,17 @@ function getWishlistByCustomerRef(obj) {
 
 // src/wishlistService/getWishlistByRef.ts
 function getWishlistByRef(obj) {
-  axiosInstance.get(`/wsservice/api/wishlists/${obj.wishlistRef}/byref`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlists/${obj.wishlistRef}/byref`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -113,12 +180,14 @@ function getWishlist(obj) {
     params.append("pageSize", obj.pageSize);
   if (obj.lastItemId)
     params.append("lastItemId", obj.lastItemId);
-  axiosInstance.get(`/wsservice/api/wishlists?${params.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(`/wsservice/api/wishlists?${params.toString()}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-TWC-Tenant": obj.tenant
+      }
+    });
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -128,12 +197,17 @@ function getWishlist(obj) {
 
 // src/wishlistService/getWishlistItemByID.ts
 function getWishlistItemByID(obj) {
-  axiosInstance.get(`/wsservice/api/wishlist/items/${obj.wishlistItemID}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlist/items/${obj.wishlistItemID}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -143,12 +217,17 @@ function getWishlistItemByID(obj) {
 
 // src/wishlistService/getWishlistItemByRef.ts
 function getWishlistItemByRef(obj) {
-  axiosInstance.get(`/wsservice/api/wishlist/items/ref/${obj.wishlistItemRef}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlist/items/ref/${obj.wishlistItemRef}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -165,12 +244,17 @@ function getWishlistItems(obj) {
     params.append("pageSize", obj.pageSize);
   if (obj.lastItemId)
     params.append("lastItemId", obj.lastItemId);
-  axiosInstance.get(`/wsservice/api/wishlist/items?${params.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlist/items?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -180,12 +264,18 @@ function getWishlistItems(obj) {
 
 // src/wishlistService/updateWishlistItemByRef.ts
 function updateWishlistItemByRef(obj) {
-  axiosInstance.put(`/wsservice/api/wishlist/items/ref=${obj.wishlistItemRef}`, obj.updateWishlistItemBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/wsservice/api/wishlist/items/ref=${obj.wishlistItemRef}`,
+      obj.updateWishlistItemBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -202,12 +292,17 @@ function getWishlistByCustomer(obj) {
     params.append("pageSize", obj.pageSize);
   if (obj.lastItemId)
     params.append("lastItemId", obj.lastItemId);
-  axiosInstance.get(`/wsservice/api/wishlists/lookup?${params.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlists/lookup?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -217,12 +312,18 @@ function getWishlistByCustomer(obj) {
 
 // src/wishlistService/createWishlistItem.ts
 function createWishlistItem(obj) {
-  axiosInstance.post(`/wsservice/api/wishlist/items`, obj.createWishlistItembody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.post(
+      `/wsservice/api/wishlist/items`,
+      obj.createWishlistItembody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -232,12 +333,14 @@ function createWishlistItem(obj) {
 
 // src/wishlistService/createWishlist.ts
 function createWishlist(obj) {
-  axiosInstance.post(`/wsservice/api/wishlists`, obj.newWishlistBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.post(`/wsservice/api/wishlists`, obj.newWishlistBody, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-TWC-Tenant": obj.tenant
+      }
+    });
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -247,12 +350,18 @@ function createWishlist(obj) {
 
 // src/wishlistService/updateWishlist.ts
 function updateWishlist(obj) {
-  axiosInstance.put(`/wsservice/api/wishlists`, obj.updateWishlistBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/wsservice/api/wishlists`,
+      obj.updateWishlistBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -262,12 +371,18 @@ function updateWishlist(obj) {
 
 // src/wishlistService/updateWishlistByID.ts
 function updateWishlistByID(obj) {
-  axiosInstance.put(`/wsservice/api/wishlists/id=${obj.wishlistID}`, obj.updateWishlistByIDBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/wsservice/api/wishlists/id=${obj.wishlistID}`,
+      obj.updateWishlistByIDBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -277,12 +392,18 @@ function updateWishlistByID(obj) {
 
 // src/wishlistService/updateWishlistByRef.ts
 function updateWishlistByRef(obj) {
-  axiosInstance.put(`/wsservice/api/wishlists/ref=${obj.wishlistRef}`, obj.updateWishlistByIDBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/wsservice/api/wishlists/ref=${obj.wishlistRef}`,
+      obj.updateWishlistByIDBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -292,12 +413,18 @@ function updateWishlistByRef(obj) {
 
 // src/wishlistService/updateWishlistItem.ts
 function updateWishlistItem(obj) {
-  axiosInstance.put(`/wsservice/api/wishlist/items`, obj.updateWishlistItemBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/wsservice/api/wishlist/items`,
+      obj.updateWishlistItemBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -307,12 +434,18 @@ function updateWishlistItem(obj) {
 
 // src/wishlistService/updateWishlistItemByID.ts
 function updateWishlistItemByID(obj) {
-  axiosInstance.put(`/wsservice/api/wishlist/items/id=${obj.wishlistItemID}`, obj.updateWishlistItemBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/wsservice/api/wishlist/items/id=${obj.wishlistItemID}`,
+      obj.updateWishlistItemBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -322,12 +455,17 @@ function updateWishlistItemByID(obj) {
 
 // src/wishlistService/deleteWishlistItemByID.ts
 function deleteWishlistItemByID(obj) {
-  axiosInstance.delete(`/wsservice/api/wishlist/items/${obj.wishlistItemID}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/wsservice/api/wishlist/items/${obj.wishlistItemID}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -337,12 +475,17 @@ function deleteWishlistItemByID(obj) {
 
 // src/wishlistService/deleteWishlistItemByRef.ts
 function deleteWishlistItemByRef(obj) {
-  axiosInstance.delete(`/wsservice/api/wishlist/items/${obj.wishlistItemRef}/ref`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/wsservice/api/wishlist/items/${obj.wishlistItemRef}/ref`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -355,12 +498,17 @@ function deleteWishlist(obj) {
   const params = new URLSearchParams();
   obj.wishlistID && params.append("id", obj.wishlistID);
   obj.wishlistRef && params.append("wishlistRef", obj.wishlistRef);
-  axiosInstance.delete(`/wsservice/api/wishlists?${params.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/wsservice/api/wishlists?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -373,12 +521,17 @@ function deleteAllWishlist(obj) {
   const params = new URLSearchParams();
   obj.customerID && params.append("customerId", obj.customerID);
   obj.customerRef && params.append("customerRef", obj.customerRef);
-  axiosInstance.delete(`/wsservice/api/wishlists/customer?${params.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/wsservice/api/wishlists/customer?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -388,12 +541,17 @@ function deleteAllWishlist(obj) {
 
 // src/wishlistService/deleteWishlistByID.ts
 function deleteWishlistByID(obj) {
-  axiosInstance.delete(`/wsservice/api/wishlists/${obj.wishlistID}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/wsservice/api/wishlists/${obj.wishlistID}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -403,12 +561,17 @@ function deleteWishlistByID(obj) {
 
 // src/wishlistService/deleteWishlistByRef.ts
 function deleteWishlistByRef(obj) {
-  axiosInstance.delete(`/wsservice/api/wishlists/${obj.wishlistRef}/byref`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/wsservice/api/wishlists/${obj.wishlistRef}/byref`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -429,14 +592,18 @@ function getCustomersWithFlag(obj) {
   } else if (obj.preRelease !== void 0) {
     params.preRelease = obj.preRelease.toString();
   }
-  axiosInstance.get("/wsservice/api/wishlist/items/getCustomersWithFlag", {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    },
-    params
-    // Pass query parameters
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      "/wsservice/api/wishlist/items/getCustomersWithFlag",
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        },
+        params
+      }
+    );
   }).then((response) => {
     if (obj.onSuccess) {
       obj.onSuccess(response.data);
@@ -461,18 +628,20 @@ function resetWishlistItemFlag(obj) {
   } else if (obj.preRelease) {
     params.preRelease = obj.preRelease.toString();
   }
-  axiosInstance.put(
-    "/wsservice/api/wishlist/items/resetFlag",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obj.token}`,
-        "X-TWC-Tenant": obj.tenant
-      },
-      params
-    }
-  ).then((response) => {
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      "/wsservice/api/wishlist/items/resetFlag",
+      {},
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        },
+        params
+      }
+    );
+  }).then((response) => {
     if (obj.onSuccess) {
       obj.onSuccess(response.data);
     }
@@ -485,12 +654,18 @@ function resetWishlistItemFlag(obj) {
 
 // src/wishlistService/getItemsPopularity.ts
 function getItemsPopularity(obj) {
-  axiosInstance.post(`/wsservice/api/wishlist/itemPopularity`, obj.itemsPopularityBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.post(
+      `/wsservice/api/wishlists/itemPopularity`,
+      obj.itemsPopularityBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -506,12 +681,17 @@ function customerLookup(obj) {
   obj.lastName && params.append("lastName", obj.lastName);
   obj.mobile && params.append("mobile", obj.mobile);
   obj.phone && params.append("phone", obj.phone);
-  axiosInstance.get(`/customerservice/api/v2/customers/search?${params.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/customerservice/api/v2/customers/search?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -521,12 +701,17 @@ function customerLookup(obj) {
 
 // src/customerService/getCustomerByID.ts
 function getCustomerByID(obj) {
-  axiosInstance.get(`/customerservice/api/v2/customers/${obj.customerID}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/customerservice/api/v2/customers/${obj.customerID}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -536,12 +721,17 @@ function getCustomerByID(obj) {
 
 // src/customerService/getCusotmerByRef.ts
 function getCustomerByRef(obj) {
-  axiosInstance.get(`/customerservice/api/v2/customers/${obj.customerRef}/ref`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/customerservice/api/v2/customers/${obj.customerRef}/ref`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -551,12 +741,18 @@ function getCustomerByRef(obj) {
 
 // src/customerService/createCustomer.ts
 function createCustomer(obj) {
-  axiosInstance.post(`/customerservice/api/v2/customers/`, obj.createCustomerBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.post(
+      `/customerservice/api/v2/customers/`,
+      obj.createCustomerBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -566,12 +762,18 @@ function createCustomer(obj) {
 
 // src/customerService/updateCustomerByID.ts
 function updateCustomerByID(obj) {
-  axiosInstance.put(`/customerservice/api/v2/customers/id=${obj.customerID}`, obj.updateCustomerBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/customerservice/api/v2/customers/id=${obj.customerID}`,
+      obj.updateCustomerBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -581,12 +783,18 @@ function updateCustomerByID(obj) {
 
 // src/customerService/updateCustomer.ts
 function updateCustomer(obj) {
-  axiosInstance.put(`/customerservice/api/v2/customers`, obj.updateCustomerBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/customerservice/api/v2/customers`,
+      obj.updateCustomerBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -596,17 +804,19 @@ function updateCustomer(obj) {
 
 // src/customerService/updateCustomerByRef.ts
 function updateCustomerByRef(obj) {
-  axiosInstance.put(
-    `/customerservice/api/v2/customers/customerRef=${obj.customerRef}`,
-    obj.updateCustomerBody,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obj.token}`,
-        "X-TWC-Tenant": obj.tenant
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.put(
+      `/customerservice/api/v2/customers/customerRef=${obj.customerRef}`,
+      obj.updateCustomerBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
       }
-    }
-  ).then((response) => {
+    );
+  }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
     obj.onError((error == null ? void 0 : error.response) || error);
@@ -618,12 +828,17 @@ function deleteCustomer(obj) {
   const params = new URLSearchParams();
   obj.customerID && params.append("id", obj.customerID);
   obj.customerRef && params.append("customerRef", obj.customerRef);
-  axiosInstance.delete(`/customerservice/api/v2/customers?${params.toString()}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/customerservice/api/v2/customers?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -633,12 +848,17 @@ function deleteCustomer(obj) {
 
 // src/customerService/deleteCustomerByID.ts
 function deleteCustomerByID(obj) {
-  axiosInstance.delete(`/customerservice/api/v2/customers/${obj.customerID}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.delete(
+      `/customerservice/api/v2/customers/${obj.customerID}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -648,12 +868,18 @@ function deleteCustomerByID(obj) {
 
 // src/customerService/createBulkCustomers.ts
 function createBulkCustomers(obj) {
-  axiosInstance.post(`/customerservice/api/v2/upload-customers/`, obj.createBulkCustomerBody, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${obj.token}`,
-      "X-TWC-Tenant": obj.tenant
-    }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.post(
+      `/customerservice/api/v2/upload-customers/`,
+      obj.createBulkCustomerBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
   }).then((response) => {
     obj.onSuccess(response.data);
   }).catch((error) => {
@@ -687,7 +913,9 @@ exports.getWishlistByRef = getWishlistByRef;
 exports.getWishlistItemByID = getWishlistItemByID;
 exports.getWishlistItemByRef = getWishlistItemByRef;
 exports.getWishlistItems = getWishlistItems;
+exports.initTWC = initTWC;
 exports.resetWishlistItemFlag = resetWishlistItemFlag;
+exports.resolveToken = resolveToken;
 exports.updateCustomer = updateCustomer;
 exports.updateCustomerByID = updateCustomerByID;
 exports.updateCustomerByRef = updateCustomerByRef;

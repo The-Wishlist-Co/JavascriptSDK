@@ -4,6 +4,15 @@
 
 ## Table of contents
 
+### Interfaces
+
+- [TWCConfig](interfaces/TWCConfig.md)
+
+### Functions
+
+- [initTWC](modules.md#inittwc)
+- [resolveToken](modules.md#resolvetoken)
+
 ### customerService
 
 - [createBulkCustomers](modules.md#createbulkcustomers)
@@ -46,6 +55,66 @@
 - [updateWishlistItemByID](modules.md#updatewishlistitembyid)
 - [updateWishlistItemByRef](modules.md#updatewishlistitembyref)
 
+## Functions
+
+### initTWC
+
+▸ **initTWC**(`cfg`): `void`
+
+Initializes the TWC SDK for Shopify proxy-based authentication.
+Call this once (e.g. on page load) before using any SDK functions without a token.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `cfg` | [`TWCConfig`](interfaces/TWCConfig.md) | Configuration object. |
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+config.ts:15
+
+___
+
+### resolveToken
+
+▸ **resolveToken**(`token?`): `Promise`\<`string`\>
+
+Resolves an authentication token for TWC API calls.
+
+- If a token is provided directly, it is returned as-is (zero overhead).
+- If no token is provided, fetches one from the Shopify App Proxy
+  configured via [initTWC](modules.md#inittwc). The proxy token is cached client-side
+  to avoid repeated network calls.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `token?` | `string` | An explicit bearer token. When supplied, proxy auth is bypassed. |
+
+#### Returns
+
+`Promise`\<`string`\>
+
+A promise that resolves to a valid access token string.
+
+**`Throws`**
+
+If no token is provided and `initTWC` has not been called.
+
+**`Throws`**
+
+If the proxy request fails or returns an unsuccessful response.
+
+#### Defined in
+
+auth/proxyAuth.ts:21
+
 ## customerService
 
 ### createBulkCustomers
@@ -63,7 +132,7 @@ Creates bulk customers.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful response. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -71,7 +140,7 @@ Creates bulk customers.
 
 #### Defined in
 
-[customerService/createBulkCustomers.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/createBulkCustomers.ts#L15)
+customerService/createBulkCustomers.ts:16
 
 ___
 
@@ -90,7 +159,7 @@ Creates a new customer.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -98,7 +167,7 @@ Creates a new customer.
 
 #### Defined in
 
-[customerService/createCustomer.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/createCustomer.ts#L14)
+customerService/createCustomer.ts:15
 
 ___
 
@@ -121,7 +190,7 @@ Returns a list of customers with a matching email/mobile/phone/firstName/lastNam
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful lookup. |
 | `obj.phone?` | `string` | The phone number of the customer. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -129,7 +198,7 @@ Returns a list of customers with a matching email/mobile/phone/firstName/lastNam
 
 #### Defined in
 
-[customerService/customerLookup.ts:18](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/customerLookup.ts#L18)
+customerService/customerLookup.ts:19
 
 ___
 
@@ -149,7 +218,7 @@ Deletes a customer.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
 | `obj.tenant` | `string` | The tenant ID. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -157,7 +226,7 @@ Deletes a customer.
 
 #### Defined in
 
-[customerService/deleteCustomer.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/deleteCustomer.ts#L16)
+customerService/deleteCustomer.ts:17
 
 ___
 
@@ -176,7 +245,7 @@ Deletes a customer by their ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during deletion. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the deletion is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -184,7 +253,7 @@ Deletes a customer by their ID.
 
 #### Defined in
 
-[customerService/deleteCustomerByID.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/deleteCustomerByID.ts#L15)
+customerService/deleteCustomerByID.ts:16
 
 ___
 
@@ -203,7 +272,7 @@ Retrieves customer information by ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to handle any errors. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -211,7 +280,7 @@ Retrieves customer information by ID.
 
 #### Defined in
 
-[customerService/getCustomerByID.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/getCustomerByID.ts#L14)
+customerService/getCustomerByID.ts:15
 
 ___
 
@@ -230,7 +299,7 @@ Retrieves customer information by customer reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to handle any errors. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -238,7 +307,7 @@ Retrieves customer information by customer reference.
 
 #### Defined in
 
-[customerService/getCusotmerByRef.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/getCusotmerByRef.ts#L14)
+customerService/getCusotmerByRef.ts:15
 
 ___
 
@@ -256,7 +325,7 @@ Updates a customer using the provided data.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be executed when an error occurs during the request. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be executed when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier for the request. |
-| `obj.token` | `string` | The authentication token for the request. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateCustomerBody` | `Object` | The data to be sent in the request body for updating the customer. See https://the-wishlist-co.github.io/docs/customersvcApi.html#update for information on the fields. |
 
 #### Returns
@@ -265,7 +334,7 @@ Updates a customer using the provided data.
 
 #### Defined in
 
-[customerService/updateCustomer.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/updateCustomer.ts#L16)
+customerService/updateCustomer.ts:17
 
 ___
 
@@ -284,7 +353,7 @@ Updates a customer by their ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant ID. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateCustomerBody` | `Object` | The updated customer data. See https://the-wishlist-co.github.io/docs/customersvcApi.html#update for information on the fields. |
 
 #### Returns
@@ -293,7 +362,7 @@ Updates a customer by their ID.
 
 #### Defined in
 
-[customerService/updateCustomerByID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/updateCustomerByID.ts#L16)
+customerService/updateCustomerByID.ts:17
 
 ___
 
@@ -312,7 +381,7 @@ Updates a customer by reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateCustomerBody` | `Object` | The updated customer data. See https://the-wishlist-co.github.io/docs/customersvcApi.html#update for information on the fields. |
 
 #### Returns
@@ -321,7 +390,7 @@ Updates a customer by reference.
 
 #### Defined in
 
-[customerService/updateCustomerByRef.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/customerService/updateCustomerByRef.ts#L16)
+customerService/updateCustomerByRef.ts:17
 
 ## wishlistService
 
@@ -340,7 +409,7 @@ Creates a new wishlist.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful creation. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -348,7 +417,7 @@ Creates a new wishlist.
 
 #### Defined in
 
-[wishlistService/createWishlist.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/createWishlist.ts#L14)
+wishlistService/createWishlist.ts:15
 
 ___
 
@@ -367,7 +436,7 @@ Creates a wishlist item.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error during the creation of the wishlist item. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful creation of the wishlist item. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -375,7 +444,7 @@ Creates a wishlist item.
 
 #### Defined in
 
-[wishlistService/createWishlistItem.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/createWishlistItem.ts#L14)
+wishlistService/createWishlistItem.ts:15
 
 ___
 
@@ -395,7 +464,7 @@ Deletes all wishlists for a customer.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -403,7 +472,7 @@ Deletes all wishlists for a customer.
 
 #### Defined in
 
-[wishlistService/deleteAllWishlist.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/deleteAllWishlist.ts#L15)
+wishlistService/deleteAllWishlist.ts:16
 
 ___
 
@@ -421,7 +490,7 @@ Deletes a wishlist by either ID or Ref.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during deletion. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the deletion is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistID?` | `string` | The ID of the wishlist to delete (either wishlistID or wishlistRef must be defined). |
 | `obj.wishlistRef?` | `string` | The reference of the wishlist to delete (either wishlistID or wishlistRef must be defined). |
 
@@ -431,7 +500,7 @@ Deletes a wishlist by either ID or Ref.
 
 #### Defined in
 
-[wishlistService/deleteWishlist.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/deleteWishlist.ts#L16)
+wishlistService/deleteWishlist.ts:17
 
 ___
 
@@ -449,7 +518,7 @@ Deletes a wishlist by ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during deletion. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the deletion is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistID` | `string` | The ID of the wishlist to delete. |
 
 #### Returns
@@ -458,7 +527,7 @@ Deletes a wishlist by ID.
 
 #### Defined in
 
-[wishlistService/deleteWishlistByID.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/deleteWishlistByID.ts#L14)
+wishlistService/deleteWishlistByID.ts:15
 
 ___
 
@@ -476,7 +545,7 @@ Deletes a wishlist by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the deletion. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the wishlist is successfully deleted. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistRef` | `string` | The reference of the wishlist to delete. |
 
 #### Returns
@@ -485,7 +554,7 @@ Deletes a wishlist by its reference.
 
 #### Defined in
 
-[wishlistService/deleteWishlistByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/deleteWishlistByRef.ts#L15)
+wishlistService/deleteWishlistByRef.ts:16
 
 ___
 
@@ -503,7 +572,7 @@ Deletes a wishlist item by ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
 | `obj.tenant` | `string` | The tenant. |
-| `obj.token` | `string` | The authorization token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistItemID` | `string` | The ID of the wishlist item to delete. |
 
 #### Returns
@@ -512,7 +581,7 @@ Deletes a wishlist item by ID.
 
 #### Defined in
 
-[wishlistService/deleteWishlistItemByID.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/deleteWishlistItemByID.ts#L15)
+wishlistService/deleteWishlistItemByID.ts:16
 
 ___
 
@@ -530,7 +599,7 @@ Deletes a wishlist item by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistItemRef` | `string` | The reference of the wishlist item to delete. |
 
 #### Returns
@@ -539,7 +608,7 @@ Deletes a wishlist item by its reference.
 
 #### Defined in
 
-[wishlistService/deleteWishlistItemByRef.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/deleteWishlistItemByRef.ts#L14)
+wishlistService/deleteWishlistItemByRef.ts:15
 
 ___
 
@@ -561,7 +630,7 @@ If the customers do not exist, this method returns an empty list.
 | `obj.preRelease?` | `boolean` | A boolean indicating whether to retrieve customers with preRelease enabled (either notifyMe or preRelease must be defined). |
 | `obj.productRef?` | `string` | The product reference to filter the customers by (either productRef or variantRef must be defined). |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.variantRef?` | `string` | The variant reference to filter the customers by (either productRef or variantRef must be defined). |
 
 #### Returns
@@ -570,7 +639,7 @@ If the customers do not exist, this method returns an empty list.
 
 #### Defined in
 
-[wishlistService/getCustomersWithFlag.ts:23](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getCustomersWithFlag.ts#L23)
+wishlistService/getCustomersWithFlag.ts:24
 
 ___
 
@@ -589,7 +658,7 @@ Show a count of the number of times an item has been wishlisted.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the update. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the update is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -597,7 +666,7 @@ Show a count of the number of times an item has been wishlisted.
 
 #### Defined in
 
-[wishlistService/getItemsPopularity.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getItemsPopularity.ts#L17)
+wishlistService/getItemsPopularity.ts:18
 
 ___
 
@@ -617,7 +686,7 @@ Retrieves the wishlist data based on the provided parameters.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.pageSize?` | `string` | The number of items per page to retrieve. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistID?` | `string` | The ID of the wishlist to retrieve (either wishlistID or wishlistRef must be defined). |
 | `obj.wishlistRef?` | `string` | The reference of the wishlist to retrieve (either wishlistID or wishlistRef must be defined). |
 
@@ -627,7 +696,7 @@ Retrieves the wishlist data based on the provided parameters.
 
 #### Defined in
 
-[wishlistService/getWishlist.ts:21](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlist.ts#L21)
+wishlistService/getWishlist.ts:22
 
 ___
 
@@ -649,7 +718,7 @@ Retrieves the wishlist for a customer.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle a successful response. |
 | `obj.pageSize?` | `string` | The number of items to retrieve per page. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -657,7 +726,7 @@ Retrieves the wishlist for a customer.
 
 #### Defined in
 
-[wishlistService/getWishlistByCustomer.ts:19](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistByCustomer.ts#L19)
+wishlistService/getWishlistByCustomer.ts:20
 
 ___
 
@@ -678,7 +747,7 @@ Retrieves the wishlist for a specific customer ID.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.pageSize?` | `number` | The number of items to retrieve per page (default: 10). |
 | `obj.tenant` | `string` | The tenant ID. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -686,7 +755,7 @@ Retrieves the wishlist for a specific customer ID.
 
 #### Defined in
 
-[wishlistService/getWishlistByCustomerID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistByCustomerID.ts#L16)
+wishlistService/getWishlistByCustomerID.ts:17
 
 ___
 
@@ -707,7 +776,7 @@ Retrieves the wishlist for a customer based on the customer reference.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle a successful response. |
 | `obj.pageSize?` | `number` | The number of items to retrieve per page (default: 10). |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 
 #### Returns
 
@@ -715,7 +784,7 @@ Retrieves the wishlist for a customer based on the customer reference.
 
 #### Defined in
 
-[wishlistService/getWishlistByCustomerRef.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistByCustomerRef.ts#L16)
+wishlistService/getWishlistByCustomerRef.ts:17
 
 ___
 
@@ -735,7 +804,7 @@ Retrieves a wishlist by its ID.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.pageSize?` | `number` | The number of items per page. |
 | `obj.tenant` | `string` | The tenant. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistID` | `string` | The ID of the wishlist. |
 
 #### Returns
@@ -744,7 +813,7 @@ Retrieves a wishlist by its ID.
 
 #### Defined in
 
-[wishlistService/getWishlistByID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistByID.ts#L16)
+wishlistService/getWishlistByID.ts:17
 
 ___
 
@@ -762,7 +831,7 @@ Retrieves a wishlist by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the retrieval. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the wishlist is successfully retrieved. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistRef` | `string` | The reference of the wishlist to retrieve. |
 
 #### Returns
@@ -771,7 +840,7 @@ Retrieves a wishlist by its reference.
 
 #### Defined in
 
-[wishlistService/getWishlistByRef.ts:14](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistByRef.ts#L14)
+wishlistService/getWishlistByRef.ts:15
 
 ___
 
@@ -789,7 +858,7 @@ Retrieves a wishlist item by its ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistItemID` | `string` | The ID of the wishlist item to retrieve. |
 
 #### Returns
@@ -798,7 +867,7 @@ Retrieves a wishlist item by its ID.
 
 #### Defined in
 
-[wishlistService/getWishlistItemByID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistItemByID.ts#L16)
+wishlistService/getWishlistItemByID.ts:17
 
 ___
 
@@ -816,7 +885,7 @@ Retrieves a wishlist item by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistItemRef` | `string` | The reference of the wishlist item to retrieve. |
 
 #### Returns
@@ -825,7 +894,7 @@ Retrieves a wishlist item by its reference.
 
 #### Defined in
 
-[wishlistService/getWishlistItemByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistItemByRef.ts#L15)
+wishlistService/getWishlistItemByRef.ts:16
 
 ___
 
@@ -845,7 +914,7 @@ Retrieves wishlist items based on the provided parameters.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle successful response. |
 | `obj.pageSize?` | `string` | The number of items to retrieve per page. |
 | `obj.tenant` | `string` | The tenant information. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.wishlistID` | `string` | The ID of the wishlist (either wishlistID or wishlistRef must be defined). |
 | `obj.wishlistRef` | `string` | The reference of the wishlist (either wishlistID or wishlistRef must be defined). |
 
@@ -855,7 +924,7 @@ Retrieves wishlist items based on the provided parameters.
 
 #### Defined in
 
-[wishlistService/getWishlistItems.ts:20](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/getWishlistItems.ts#L20)
+wishlistService/getWishlistItems.ts:21
 
 ___
 
@@ -876,7 +945,7 @@ Resets the wishlist item flag.
 | `obj.preRelease?` | `boolean` | Indicates whether the item is a pre-release (either notifyMe or preRelease must be defined). |
 | `obj.productRef?` | `string` | The product reference (either productRef or variantRef must be defined). |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.variantRef?` | `string` | The variant reference (either productRef or variantRef must be defined). |
 
 #### Returns
@@ -885,7 +954,7 @@ Resets the wishlist item flag.
 
 #### Defined in
 
-[wishlistService/resetWishlistItemFlag.ts:21](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/resetWishlistItemFlag.ts#L21)
+wishlistService/resetWishlistItemFlag.ts:22
 
 ___
 
@@ -903,7 +972,7 @@ Updates a wishlist.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateWishlistBody` | `Object` | The body of the wishlist update request. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-wishlist-by-either-id-or-ref for information on the fields. |
 
 #### Returns
@@ -912,7 +981,7 @@ Updates a wishlist.
 
 #### Defined in
 
-[wishlistService/updateWishlist.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/updateWishlist.ts#L16)
+wishlistService/updateWishlist.ts:17
 
 ___
 
@@ -930,7 +999,7 @@ Updates a wishlist by its ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateWishlistByIDBody` | `Object` | The updated wishlist data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#get-wishlist-by-id-or-wishlistref for information on the fields. |
 | `obj.wishlistID` | `string` | The ID of the wishlist to update. |
 
@@ -940,7 +1009,7 @@ Updates a wishlist by its ID.
 
 #### Defined in
 
-[wishlistService/updateWishlistByID.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/updateWishlistByID.ts#L15)
+wishlistService/updateWishlistByID.ts:16
 
 ___
 
@@ -958,7 +1027,7 @@ Updates a wishlist by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateWishlistByIDBody` | `Object` | The updated wishlist data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#get-wishlist-by-id-or-wishlistref for information on the fields. |
 | `obj.wishlistRef` | `string` | The reference of the wishlist to update. |
 
@@ -968,7 +1037,7 @@ Updates a wishlist by its reference.
 
 #### Defined in
 
-[wishlistService/updateWishlistByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/updateWishlistByRef.ts#L15)
+wishlistService/updateWishlistByRef.ts:16
 
 ___
 
@@ -986,7 +1055,7 @@ Updates a wishlist item.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the update. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the update is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateWishlistItemBody` | `Object` | The body of the request containing the updated wishlist item data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-a-wishlist-item-by-wishlist-item-id for information on the fields. |
 
 #### Returns
@@ -995,7 +1064,7 @@ Updates a wishlist item.
 
 #### Defined in
 
-[wishlistService/updateWishlistItem.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/updateWishlistItem.ts#L17)
+wishlistService/updateWishlistItem.ts:18
 
 ___
 
@@ -1013,7 +1082,7 @@ Updates a wishlist item by its ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateWishlistItemBody` | `Object` | The updated wishlist item data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-a-wishlist-item-by-wishlist-item-id for information on the fields. |
 | `obj.wishlistItemID` | `string` | The ID of the wishlist item to update. |
 
@@ -1023,7 +1092,7 @@ Updates a wishlist item by its ID.
 
 #### Defined in
 
-[wishlistService/updateWishlistItemByID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/updateWishlistItemByID.ts#L16)
+wishlistService/updateWishlistItemByID.ts:17
 
 ___
 
@@ -1041,7 +1110,7 @@ Updates a wishlist item by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token` | `string` | The authentication token. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
 | `obj.updateWishlistItemBody` | `Object` | The updated wishlist item data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-a-wishlist-item-by-wishlist-item-id for information on the fields. |
 | `obj.wishlistItemRef` | `string` | The reference of the wishlist item to update. |
 
@@ -1051,4 +1120,4 @@ Updates a wishlist item by its reference.
 
 #### Defined in
 
-[wishlistService/updateWishlistItemByRef.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/28474c0a68121d356efe16d92a4b1995b2a10349/src/wishlistService/updateWishlistItemByRef.ts#L16)
+wishlistService/updateWishlistItemByRef.ts:17

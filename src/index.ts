@@ -1,3 +1,8 @@
+// Configuration & Auth
+export { initTWC } from "./config";
+export type { TWCConfig } from "./config";
+export { resolveToken } from "./auth/proxyAuth";
+
 // Wishlist API
 export * from "./wishlistService/getWishlistByID";
 export * from "./wishlistService/getWishlistByCustomerID";

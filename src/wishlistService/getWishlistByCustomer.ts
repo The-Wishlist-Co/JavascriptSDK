@@ -1,6 +1,7 @@
 // Get all wishlists for a given customer by customer ID or customer Ref
 
 import { axiosInstance } from "../axios/AxiosInstance";
+import { resolveToken } from "../auth/proxyAuth";
 
 /**
  * Retrieves the wishlist for a customer.
@@ -11,7 +12,7 @@ import { axiosInstance } from "../axios/AxiosInstance";
  * @param obj.customerRef - The reference of the customer (either customerID or customerRef must be defined).
  * @param obj.pageSize - The number of items to retrieve per page.
  * @param obj.lastItemId - The ID of the last item retrieved.
- * @param obj.token - The authentication token.
+ * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - The callback function to handle a successful response.
  * @param obj.onError - The callback function to handle an error response.
@@ -21,7 +22,7 @@ export function getWishlistByCustomer(obj: {
   customerRef?: string;
   pageSize?: string;
   lastItemId?: string;
-  token: string;
+  token?: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;
@@ -33,13 +34,18 @@ export function getWishlistByCustomer(obj: {
   if (obj.pageSize) params.append("pageSize", obj.pageSize);
   if (obj.lastItemId) params.append("lastItemId", obj.lastItemId);
 
-  axiosInstance
-    .get(`/wsservice/api/wishlists/lookup?${params.toString()}`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obj.token}`,
-        "X-TWC-Tenant": obj.tenant,
-      },
+  resolveToken(obj.token)
+    .then((token) => {
+      return axiosInstance.get(
+        `/wsservice/api/wishlists/lookup?${params.toString()}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "X-TWC-Tenant": obj.tenant,
+          },
+        }
+      );
     })
     .then((response) => {
       obj.onSuccess(response.data);

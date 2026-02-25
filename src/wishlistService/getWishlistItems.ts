@@ -2,6 +2,7 @@
 // Note that it is unlikely that a wishlist item ref will rarely be used.
 
 import { axiosInstance } from "../axios/AxiosInstance";
+import { resolveToken } from "../auth/proxyAuth";
 
 /**
  * Retrieves wishlist items based on the provided parameters.
@@ -12,7 +13,7 @@ import { axiosInstance } from "../axios/AxiosInstance";
  * @param obj.wishlistRef - The reference of the wishlist (either wishlistID or wishlistRef must be defined).
  * @param obj.pageSize - The number of items to retrieve per page.
  * @param obj.lastItemId - The ID of the last item retrieved.
- * @param obj.token - The authentication token.
+ * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
  * @param obj.tenant - The tenant information.
  * @param obj.onSuccess - The callback function to handle successful response.
  * @param obj.onError - The callback function to handle error response.
@@ -22,7 +23,7 @@ export function getWishlistItems(obj: {
   wishlistRef: string;
   pageSize?: string;
   lastItemId?: string;
-  token: string;
+  token?: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;
@@ -33,13 +34,18 @@ export function getWishlistItems(obj: {
   if (obj.pageSize) params.append("pageSize", obj.pageSize);
   if (obj.lastItemId) params.append("lastItemId", obj.lastItemId);
 
-  axiosInstance
-    .get(`/wsservice/api/wishlist/items?${params.toString()}`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obj.token}`,
-        "X-TWC-Tenant": obj.tenant,
-      },
+  resolveToken(obj.token)
+    .then((token) => {
+      return axiosInstance.get(
+        `/wsservice/api/wishlist/items?${params.toString()}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "X-TWC-Tenant": obj.tenant,
+          },
+        }
+      );
     })
     .then((response) => {
       obj.onSuccess(response.data);

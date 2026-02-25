@@ -3,6 +3,7 @@
 // This API supercedes the individual APIs for get wishlist by ID and get Wishlist by Ref and allows either ref or ID to be used.
 
 import { axiosInstance } from "../axios/AxiosInstance";
+import { resolveToken } from "../auth/proxyAuth";
 
 /**
  * Retrieves the wishlist data based on the provided parameters.
@@ -13,7 +14,7 @@ import { axiosInstance } from "../axios/AxiosInstance";
  * @param obj.wishlistRef - The reference of the wishlist to retrieve (either wishlistID or wishlistRef must be defined).
  * @param obj.pageSize - The number of items per page to retrieve.
  * @param obj.lastItemId - The ID of the last item retrieved.
- * @param obj.token - The authentication token.
+ * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - The callback function to handle the successful response.
  * @param obj.onError - The callback function to handle any errors.
@@ -23,7 +24,7 @@ export function getWishlist(obj: {
   wishlistRef?: string;
   pageSize?: string;
   lastItemId?: string;
-  token: string;
+  token?: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;
@@ -34,13 +35,15 @@ export function getWishlist(obj: {
   if (obj.pageSize) params.append("pageSize", obj.pageSize);
   if (obj.lastItemId) params.append("lastItemId", obj.lastItemId);
 
-  axiosInstance
-    .get(`/wsservice/api/wishlists?${params.toString()}`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obj.token}`,
-        "X-TWC-Tenant": obj.tenant,
-      },
+  resolveToken(obj.token)
+    .then((token) => {
+      return axiosInstance.get(`/wsservice/api/wishlists?${params.toString()}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant,
+        },
+      });
     })
     .then((response) => {
       obj.onSuccess(response.data);
