@@ -29,12 +29,15 @@ function initTWC(cfg) {
 function getConfig() {
   return config;
 }
+function isAnonymousWishlistEnabled() {
+  return (config == null ? void 0 : config.anonymousWishlistEnabled) !== false;
+}
 var cachedToken = null;
 var cacheExpiry = 0;
+var inFlight = null;
 var CACHE_TTL_MS = 4 * 60 * 1e3;
 function resolveToken(token) {
   return __async(this, null, function* () {
-    var _a, _b, _c, _d;
     if (token)
       return token;
     const config2 = getConfig();
@@ -46,21 +49,68 @@ function resolveToken(token) {
     if (cachedToken && Date.now() < cacheExpiry) {
       return cachedToken;
     }
+    if (inFlight)
+      return inFlight;
     const proxyUrl = `https://${config2.shopDomain}/apps/twc-sdk/auth/token`;
-    const response = yield axios.get(proxyUrl);
-    if (!((_a = response.data) == null ? void 0 : _a.success) || !((_c = (_b = response.data) == null ? void 0 : _b.data) == null ? void 0 : _c.access_token)) {
-      throw new Error(
-        `TWC SDK: Proxy auth failed \u2014 ${((_d = response.data) == null ? void 0 : _d.message) || "unknown error"}`
-      );
-    }
-    cachedToken = response.data.data.access_token;
-    cacheExpiry = Date.now() + CACHE_TTL_MS;
-    return cachedToken;
+    const request = axios.get(proxyUrl).then(
+      (response) => {
+        var _a, _b, _c, _d;
+        inFlight = null;
+        if (!((_a = response.data) == null ? void 0 : _a.success) || !((_c = (_b = response.data) == null ? void 0 : _b.data) == null ? void 0 : _c.access_token)) {
+          throw new Error(
+            `TWC SDK: Proxy auth failed \u2014 ${((_d = response.data) == null ? void 0 : _d.message) || "unknown error"}`
+          );
+        }
+        const accessToken = response.data.data.access_token;
+        cachedToken = accessToken;
+        cacheExpiry = Date.now() + CACHE_TTL_MS;
+        return accessToken;
+      },
+      (error) => {
+        inFlight = null;
+        throw error;
+      }
+    );
+    inFlight = request;
+    return request;
   });
+}
+function invalidateToken() {
+  cachedToken = null;
+  cacheExpiry = 0;
+}
+function getCachedToken() {
+  return cachedToken;
 }
 var axiosInstance = axios.create({
   baseURL: "https://api.au-aws.thewishlist.io/services"
 });
+function authorizationOf(config2) {
+  var _a, _b, _c;
+  const header = (_c = (_a = config2.headers) == null ? void 0 : _a.Authorization) != null ? _c : (_b = config2.headers) == null ? void 0 : _b.authorization;
+  return typeof header === "string" ? header : void 0;
+}
+axiosInstance.interceptors.response.use(void 0, (error) => __async(void 0, null, function* () {
+  var _a;
+  const config2 = error.config;
+  if (((_a = error.response) == null ? void 0 : _a.status) !== 401 || !config2 || config2._twcRetried) {
+    return Promise.reject(error);
+  }
+  const cachedToken2 = getCachedToken();
+  if (!cachedToken2 || authorizationOf(config2) !== `Bearer ${cachedToken2}`) {
+    return Promise.reject(error);
+  }
+  config2._twcRetried = true;
+  invalidateToken();
+  let freshToken;
+  try {
+    freshToken = yield resolveToken();
+  } catch (e) {
+    return Promise.reject(error);
+  }
+  config2.headers.Authorization = `Bearer ${freshToken}`;
+  return axiosInstance.request(config2);
+}));
 
 // src/wishlistService/getWishlistByID.ts
 function getWishlistByID(obj) {
@@ -667,6 +717,262 @@ function getItemsPopularity(obj) {
   });
 }
 
+// src/anonymous/identifier.ts
+var SHOPIFY_ANALYTICS_COOKIE = "_shopify_y";
+var TWC_ANONYMOUS_COOKIE = "twc_awid";
+var ONE_YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
+function readCookie(name) {
+  if (typeof document === "undefined")
+    return null;
+  let jar;
+  try {
+    jar = document.cookie || "";
+  } catch (e) {
+    return null;
+  }
+  const prefix = `${name}=`;
+  for (const entry of jar.split(";")) {
+    const candidate = entry.trim();
+    if (!candidate.startsWith(prefix))
+      continue;
+    const raw = candidate.slice(prefix.length);
+    if (!raw)
+      return null;
+    try {
+      return decodeURIComponent(raw) || null;
+    } catch (e) {
+      return raw;
+    }
+  }
+  return null;
+}
+function writeCookie(name, value) {
+  if (typeof document === "undefined")
+    return;
+  const isSecureContext = typeof location !== "undefined" && location.protocol === "https:";
+  try {
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${ONE_YEAR_IN_SECONDS}; SameSite=Lax` + (isSecureContext ? `; Secure` : "");
+  } catch (e) {
+  }
+}
+function toHex(value, width) {
+  let hex = value.toString(16);
+  while (hex.length < width)
+    hex = `0${hex}`;
+  return hex;
+}
+function mintIdentifier() {
+  const webCrypto = typeof globalThis !== "undefined" ? globalThis.crypto : void 0;
+  if (typeof (webCrypto == null ? void 0 : webCrypto.randomUUID) === "function") {
+    return webCrypto.randomUUID();
+  }
+  if (typeof (webCrypto == null ? void 0 : webCrypto.getRandomValues) === "function") {
+    const bytes = new Uint8Array(16);
+    webCrypto.getRandomValues(bytes);
+    bytes[6] = bytes[6] & 15 | 64;
+    bytes[8] = bytes[8] & 63 | 128;
+    const hex = [];
+    for (let i = 0; i < bytes.length; i++) {
+      hex.push(toHex(bytes[i], 2));
+    }
+    return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
+  }
+  const chunk = (length) => {
+    let out = "";
+    while (out.length < length) {
+      out += toHex(Math.floor(Math.random() * 65536), 4);
+    }
+    return out.slice(0, length);
+  };
+  return `${chunk(8)}-${chunk(4)}-4${chunk(3)}-${chunk(4)}-${chunk(12)}`;
+}
+function resolveAnonymousIdentifier() {
+  const shopifyAnalyticsId = readCookie(SHOPIFY_ANALYTICS_COOKIE);
+  if (shopifyAnalyticsId)
+    return shopifyAnalyticsId;
+  const existing = readCookie(TWC_ANONYMOUS_COOKIE);
+  if (existing)
+    return existing;
+  const minted = mintIdentifier();
+  writeCookie(TWC_ANONYMOUS_COOKIE, minted);
+  return readCookie(TWC_ANONYMOUS_COOKIE) ? minted : null;
+}
+
+// src/anonymous/anonymousState.ts
+var WISHLIST_ID_KEY = "twc_anonymous_wishlist_id";
+var MERGED_KEY = "twc_anonymous_wishlist_merged";
+var inMemoryWishlistId = null;
+var inMemoryMerged = false;
+function localStore() {
+  try {
+    return typeof localStorage !== "undefined" ? localStorage : null;
+  } catch (e) {
+    return null;
+  }
+}
+function sessionStore() {
+  try {
+    return typeof sessionStorage !== "undefined" ? sessionStorage : null;
+  } catch (e) {
+    return null;
+  }
+}
+function getAnonymousWishlistId() {
+  var _a;
+  try {
+    const stored = (_a = localStore()) == null ? void 0 : _a.getItem(WISHLIST_ID_KEY);
+    if (stored)
+      return stored;
+  } catch (e) {
+  }
+  return inMemoryWishlistId;
+}
+function setAnonymousWishlistId(id) {
+  var _a;
+  inMemoryWishlistId = id;
+  try {
+    (_a = localStore()) == null ? void 0 : _a.setItem(WISHLIST_ID_KEY, id);
+  } catch (e) {
+  }
+}
+function clearAnonymousWishlistId() {
+  var _a;
+  inMemoryWishlistId = null;
+  try {
+    (_a = localStore()) == null ? void 0 : _a.removeItem(WISHLIST_ID_KEY);
+  } catch (e) {
+  }
+}
+function hasMergedThisSession() {
+  var _a;
+  try {
+    if (((_a = sessionStore()) == null ? void 0 : _a.getItem(MERGED_KEY)) === "true")
+      return true;
+  } catch (e) {
+  }
+  return inMemoryMerged;
+}
+function markMergedThisSession() {
+  var _a;
+  inMemoryMerged = true;
+  try {
+    (_a = sessionStore()) == null ? void 0 : _a.setItem(MERGED_KEY, "true");
+  } catch (e) {
+  }
+}
+function resetAnonymousWishlistState() {
+  var _a;
+  clearAnonymousWishlistId();
+  inMemoryMerged = false;
+  try {
+    (_a = sessionStore()) == null ? void 0 : _a.removeItem(MERGED_KEY);
+  } catch (e) {
+  }
+}
+
+// src/wishlistService/getOrCreateAnonymous.ts
+function getOrCreateAnonymous(obj) {
+  if (!isAnonymousWishlistEnabled()) {
+    if (obj.onSuccess)
+      obj.onSuccess(null);
+    return;
+  }
+  const onlineSessionID = resolveAnonymousIdentifier();
+  if (!onlineSessionID) {
+    if (obj.onSuccess)
+      obj.onSuccess(null);
+    return;
+  }
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.post(`/wsservice/api/wishlists/anonymous`, void 0, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-TWC-Tenant": obj.tenant
+      },
+      params: { onlineSessionID }
+    });
+  }).then((response) => {
+    var _a;
+    if ((_a = response.data) == null ? void 0 : _a.id) {
+      setAnonymousWishlistId(response.data.id);
+    }
+    if (obj.onSuccess) {
+      obj.onSuccess(response.data);
+    }
+  }).catch((error) => {
+    if (obj.onError) {
+      obj.onError((error == null ? void 0 : error.response) || error);
+    }
+  });
+}
+
+// src/wishlistService/mergeOnLogin.ts
+var mergeInFlight = false;
+function mergeOnLogin(obj) {
+  const noop = () => {
+    if (obj.onSuccess)
+      obj.onSuccess(null);
+  };
+  if (!isAnonymousWishlistEnabled() || hasMergedThisSession() || mergeInFlight) {
+    noop();
+    return;
+  }
+  const anonymousWishlistId = obj.anonymousWishlistId || getAnonymousWishlistId();
+  if (!anonymousWishlistId || !obj.customerEmail) {
+    noop();
+    return;
+  }
+  const mergeWishlistBody = {
+    anonymousWishlistId,
+    customerEmail: obj.customerEmail
+  };
+  const onlineSessionID = resolveAnonymousIdentifier();
+  if (onlineSessionID)
+    mergeWishlistBody.onlineSessionID = onlineSessionID;
+  if (obj.customerRef)
+    mergeWishlistBody.customerRef = obj.customerRef;
+  if (obj.wishlistRef)
+    mergeWishlistBody.wishlistRef = obj.wishlistRef;
+  if (obj.wishlistName)
+    mergeWishlistBody.wishlistName = obj.wishlistName;
+  mergeInFlight = true;
+  const done = () => {
+    mergeInFlight = false;
+  };
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.post(
+      `/wsservice/api/wishlists/merge`,
+      mergeWishlistBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
+  }).then((response) => {
+    done();
+    markMergedThisSession();
+    clearAnonymousWishlistId();
+    if (obj.onSuccess) {
+      obj.onSuccess(response.data || null);
+    }
+  }).catch((error) => {
+    var _a;
+    done();
+    if (((_a = error == null ? void 0 : error.response) == null ? void 0 : _a.status) === 404) {
+      markMergedThisSession();
+      noop();
+      return;
+    }
+    if (obj.onError) {
+      obj.onError((error == null ? void 0 : error.response) || error);
+    }
+  });
+}
+
 // src/customerService/customerLookup.ts
 function customerLookup(obj) {
   const params = new URLSearchParams();
@@ -881,4 +1187,4 @@ function createBulkCustomers(obj) {
   });
 }
 
-export { createBulkCustomers, createCustomer, createWishlist, createWishlistItem, customerLookup, deleteAllWishlist, deleteCustomer, deleteCustomerByID, deleteWishlist, deleteWishlistByID, deleteWishlistByRef, deleteWishlistItemByID, deleteWishlistItemByRef, getCustomerByID, getCustomerByRef, getCustomersWithFlag, getItemsPopularity, getWishlist, getWishlistByCustomer, getWishlistByCustomerID, getWishlistByCustomerRef, getWishlistByID, getWishlistByRef, getWishlistItemByID, getWishlistItemByRef, getWishlistItems, initTWC, resetWishlistItemFlag, resolveToken, updateCustomer, updateCustomerByID, updateCustomerByRef, updateWishlist, updateWishlistByID, updateWishlistByRef, updateWishlistItem, updateWishlistItemByID, updateWishlistItemByRef };
+export { createBulkCustomers, createCustomer, createWishlist, createWishlistItem, customerLookup, deleteAllWishlist, deleteCustomer, deleteCustomerByID, deleteWishlist, deleteWishlistByID, deleteWishlistByRef, deleteWishlistItemByID, deleteWishlistItemByRef, getAnonymousWishlistId, getCustomerByID, getCustomerByRef, getCustomersWithFlag, getItemsPopularity, getOrCreateAnonymous, getWishlist, getWishlistByCustomer, getWishlistByCustomerID, getWishlistByCustomerRef, getWishlistByID, getWishlistByRef, getWishlistItemByID, getWishlistItemByRef, getWishlistItems, initTWC, invalidateToken, mergeOnLogin, resetAnonymousWishlistState, resetWishlistItemFlag, resolveAnonymousIdentifier, resolveToken, updateCustomer, updateCustomerByID, updateCustomerByRef, updateWishlist, updateWishlistByID, updateWishlistByRef, updateWishlistItem, updateWishlistItemByID, updateWishlistItemByRef };

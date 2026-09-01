@@ -11,7 +11,14 @@
 ### Functions
 
 - [initTWC](modules.md#inittwc)
+- [invalidateToken](modules.md#invalidatetoken)
 - [resolveToken](modules.md#resolvetoken)
+
+### anonymousWishlist
+
+- [getAnonymousWishlistId](modules.md#getanonymouswishlistid)
+- [resetAnonymousWishlistState](modules.md#resetanonymouswishliststate)
+- [resolveAnonymousIdentifier](modules.md#resolveanonymousidentifier)
 
 ### customerService
 
@@ -38,6 +45,7 @@
 - [deleteWishlistItemByRef](modules.md#deletewishlistitembyref)
 - [getCustomersWithFlag](modules.md#getcustomerswithflag)
 - [getItemsPopularity](modules.md#getitemspopularity)
+- [getOrCreateAnonymous](modules.md#getorcreateanonymous)
 - [getWishlist](modules.md#getwishlist)
 - [getWishlistByCustomer](modules.md#getwishlistbycustomer)
 - [getWishlistByCustomerID](modules.md#getwishlistbycustomerid)
@@ -47,6 +55,7 @@
 - [getWishlistItemByID](modules.md#getwishlistitembyid)
 - [getWishlistItemByRef](modules.md#getwishlistitembyref)
 - [getWishlistItems](modules.md#getwishlistitems)
+- [mergeOnLogin](modules.md#mergeonlogin)
 - [resetWishlistItemFlag](modules.md#resetwishlistitemflag)
 - [updateWishlist](modules.md#updatewishlist)
 - [updateWishlistByID](modules.md#updatewishlistbyid)
@@ -76,7 +85,26 @@ Call this once (e.g. on page load) before using any SDK functions without a toke
 
 #### Defined in
 
-config.ts:15
+config.ts:23
+
+___
+
+### invalidateToken
+
+▸ **invalidateToken**(): `void`
+
+Drops the cached proxy token so the next [resolveToken](modules.md#resolvetoken) call re-requests it.
+
+No refresh-token flow exists, so expiry is handled by re-requesting: the axios
+response interceptor calls this on a 401 and retries the failed call once.
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+auth/proxyAuth.ts:75
 
 ___
 
@@ -90,6 +118,8 @@ Resolves an authentication token for TWC API calls.
 - If no token is provided, fetches one from the Shopify App Proxy
   configured via [initTWC](modules.md#inittwc). The proxy token is cached client-side
   to avoid repeated network calls.
+
+Concurrent calls that miss the cache share a single proxy request.
 
 #### Parameters
 
@@ -113,7 +143,64 @@ If the proxy request fails or returns an unsuccessful response.
 
 #### Defined in
 
-auth/proxyAuth.ts:21
+auth/proxyAuth.ts:24
+
+## anonymousWishlist
+
+### getAnonymousWishlistId
+
+▸ **getAnonymousWishlistId**(): `string` \| ``null``
+
+Returns the persisted anonymous wishlist id, or `null` if none is stored.
+
+#### Returns
+
+`string` \| ``null``
+
+#### Defined in
+
+anonymous/anonymousState.ts:43
+
+___
+
+### resetAnonymousWishlistState
+
+▸ **resetAnonymousWishlistState**(): `void`
+
+Clears all anonymous wishlist state: the stored `anonymousWishlistId` and the
+merge guard.
+
+Call this on logout, or when a different customer signs in during the same
+session, so a subsequent guest list can be created and merged again.
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+anonymous/anonymousState.ts:104
+
+___
+
+### resolveAnonymousIdentifier
+
+▸ **resolveAnonymousIdentifier**(): `string` \| ``null``
+
+Resolves the durable anonymous identifier for this browser, minting and
+persisting one if needed.
+
+#### Returns
+
+`string` \| ``null``
+
+The identifier to send as `onlineSessionID`, or `null` when no
+  identifier is available and none can be persisted (e.g. cookies blocked).
+  Callers must treat `null` as a silent no-op.
+
+#### Defined in
+
+anonymous/identifier.ts:118
 
 ## customerService
 
@@ -670,6 +757,48 @@ wishlistService/getItemsPopularity.ts:18
 
 ___
 
+### getOrCreateAnonymous
+
+▸ **getOrCreateAnonymous**(`obj`): `void`
+
+Gets the guest (anonymous) wishlist for this browser, creating it if it does not
+exist yet.
+
+The SDK resolves a durable identifier itself (`_shopify_y`, else `twc_awid`,
+minting one if needed) and sends it as `onlineSessionID`. Integrators must never
+construct or pass an identifier.
+
+`POST /wsservice/api/wishlists/anonymous` is create-or-return, so this is safe to
+call on every logged-out page load and needs no separate GET. The returned
+`WishlistDto.id` is persisted as the `anonymousWishlistId` that
+[mergeOnLogin](modules.md#mergeonlogin) needs.
+
+Call this on logged-out pages only — it creates an anonymous customer and
+wishlist as a side effect.
+
+Silent no-op (invokes `onSuccess(null)`, never `onError`) when the tenant feature
+flag is off, or when no durable identifier is available (e.g. cookies blocked).
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `obj` | `Object` | The configuration object. |
+| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
+| `obj.onSuccess` | (`response`: `any`) => `void` | Called with the `WishlistDto`, or with `null` when the call was a no-op. |
+| `obj.tenant` | `string` | The tenant identifier. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+wishlistService/getOrCreateAnonymous.ts:33
+
+___
+
 ### getWishlist
 
 ▸ **getWishlist**(`obj`): `void`
@@ -925,6 +1054,49 @@ Retrieves wishlist items based on the provided parameters.
 #### Defined in
 
 wishlistService/getWishlistItems.ts:21
+
+___
+
+### mergeOnLogin
+
+▸ **mergeOnLogin**(`obj`): `void`
+
+Merges the guest (anonymous) wishlist into the logged-in customer's wishlist.
+
+Call this on authenticated page loads. It is idempotent, does not block render,
+and fails silently to the shopper.
+
+The merge looks the customer up by email and 404s if that customer does not exist
+in TWC yet, so a 404 is treated as a silent no-op rather than an error. The
+backend does not mark the anonymous list as merged (WCO-4255 #6), so re-firing is
+guarded client-side for the rest of the session.
+
+Silent no-op (invokes `onSuccess(null)`, never `onError`) when the tenant feature
+flag is off, when a merge has already run this session, when no
+`anonymousWishlistId` is known, or when `customerEmail` is blank.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `obj` | `Object` | The configuration object. |
+| `obj.anonymousWishlistId?` | `string` | The anonymous wishlist id. Defaults to the id stored by [getOrCreateAnonymous](modules.md#getorcreateanonymous). |
+| `obj.customerEmail` | `string` | The logged-in customer's real email. Required — the backend looks the customer up by it. |
+| `obj.customerRef?` | `string` | Optional customer reference. |
+| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
+| `obj.onSuccess` | (`response`: `any`) => `void` | Called on a completed merge, or with `null` when the call was a no-op. |
+| `obj.tenant` | `string` | The tenant identifier. |
+| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.wishlistName?` | `string` | Optional name, used only if a new default list is created. |
+| `obj.wishlistRef?` | `string` | Optional target list to merge into; otherwise the customer's default list. |
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+wishlistService/mergeOnLogin.ts:41
 
 ___
 

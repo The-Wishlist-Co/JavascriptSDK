@@ -3,6 +3,7 @@ import { getConfig } from "../config";
 
 let cachedToken: string | null = null;
 let cacheExpiry: number = 0;
+let inFlight: Promise<string> | null = null;
 const CACHE_TTL_MS = 4 * 60 * 1000;
 
 /**
@@ -12,6 +13,8 @@ const CACHE_TTL_MS = 4 * 60 * 1000;
  * - If no token is provided, fetches one from the Shopify App Proxy
  *   configured via {@link initTWC}. The proxy token is cached client-side
  *   to avoid repeated network calls.
+ *
+ * Concurrent calls that miss the cache share a single proxy request.
  *
  * @param token - An explicit bearer token. When supplied, proxy auth is bypassed.
  * @returns A promise that resolves to a valid access token string.
@@ -33,16 +36,55 @@ export async function resolveToken(token?: string): Promise<string> {
     return cachedToken;
   }
 
+  if (inFlight) return inFlight;
+
   const proxyUrl = `https://${config.shopDomain}/apps/twc-sdk/auth/token`;
-  const response = await axios.get(proxyUrl);
+  const request: Promise<string> = axios.get(proxyUrl).then(
+    (response) => {
+      inFlight = null;
 
-  if (!response.data?.success || !response.data?.data?.access_token) {
-    throw new Error(
-      `TWC SDK: Proxy auth failed — ${response.data?.message || "unknown error"}`
-    );
-  }
+      if (!response.data?.success || !response.data?.data?.access_token) {
+        throw new Error(
+          `TWC SDK: Proxy auth failed — ${
+            response.data?.message || "unknown error"
+          }`
+        );
+      }
 
-  cachedToken = response.data.data.access_token;
-  cacheExpiry = Date.now() + CACHE_TTL_MS;
-  return cachedToken!;
+      const accessToken: string = response.data.data.access_token;
+      cachedToken = accessToken;
+      cacheExpiry = Date.now() + CACHE_TTL_MS;
+      return accessToken;
+    },
+    (error) => {
+      inFlight = null;
+      throw error;
+    }
+  );
+
+  inFlight = request;
+  return request;
+}
+
+/**
+ * Drops the cached proxy token so the next {@link resolveToken} call re-requests it.
+ *
+ * No refresh-token flow exists, so expiry is handled by re-requesting: the axios
+ * response interceptor calls this on a 401 and retries the failed call once.
+ */
+export function invalidateToken(): void {
+  cachedToken = null;
+  cacheExpiry = 0;
+}
+
+/**
+ * The currently cached proxy token, if any.
+ *
+ * Used to tell a proxy-issued token apart from one an integrator passed in —
+ * only the former can be refreshed.
+ *
+ * @internal
+ */
+export function getCachedToken(): string | null {
+  return cachedToken;
 }
