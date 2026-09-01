@@ -1,7 +1,7 @@
 // Configuration & Auth
 export { initTWC } from "./config";
 export type { TWCConfig } from "./config";
-export { resolveToken } from "./auth/proxyAuth";
+export { resolveToken, invalidateToken } from "./auth/proxyAuth";
 
 // Wishlist API
 export * from "./wishlistService/getWishlistByID";
@@ -30,6 +30,15 @@ export * from "./wishlistService/deleteWishlistByRef";
 export * from "./wishlistService/getCustomersWithFlag";
 export * from "./wishlistService/resetWishlistItemFlag";
 export * from "./wishlistService/getItemsPopularity";
+export * from "./wishlistService/getOrCreateAnonymous";
+export * from "./wishlistService/mergeOnLogin";
+
+// Anonymous (guest) wishlist helpers
+export { resolveAnonymousIdentifier } from "./anonymous/identifier";
+export {
+   getAnonymousWishlistId,
+   resetAnonymousWishlistState,
+} from "./anonymous/anonymousState";
 
 // Customer API
 export * from "./customerService/customerLookup";
