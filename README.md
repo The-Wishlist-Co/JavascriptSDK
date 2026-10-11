@@ -21,7 +21,6 @@ For Shopify storefronts, the SDK can obtain an access token automatically throug
 **Prerequisites:**
 1. The TWC Proxy App must be installed on your Shopify store.
 2. The Proxy App secret key must be configured in the TWC Admin Console.
-3. The customer must be logged in to the storefront.
 
 **Usage:**
 
