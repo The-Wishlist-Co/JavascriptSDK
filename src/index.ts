@@ -1,53 +1,25 @@
-// Configuration & Auth
-export { initTWC } from "./config";
-export type { TWCConfig } from "./config";
-export { resolveToken, invalidateToken } from "./auth/proxyAuth";
+// Server-side SDK: every function takes an access token from the tenant's TWC server API client.
+// Proxy auth (initTWC) and guest wishlists (getOrCreateAnonymous / mergeOnLogin) are not exported:
+// the Shopify proxy token cannot call these APIs, and guest wishlists are not currently supported.
 
 // Wishlist API
-export * from "./wishlistService/getWishlistByID";
-export * from "./wishlistService/getWishlistByCustomerID";
-export * from "./wishlistService/getWishlistByCustomerRef";
-export * from "./wishlistService/getWishlistByRef";
 export * from "./wishlistService/getWishlist";
 export * from "./wishlistService/getWishlistItemByID";
 export * from "./wishlistService/getWishlistItemByRef";
 export * from "./wishlistService/getWishlistItems";
-export * from "./wishlistService/updateWishlistItemByRef";
-export * from "./wishlistService/getWishlistByCustomer";
+export * from "./wishlistService/getWishlistsByCustomer";
 export * from "./wishlistService/createWishlistItem";
 export * from "./wishlistService/createWishlist";
 export * from "./wishlistService/updateWishlist";
-export * from "./wishlistService/updateWishlistByID";
-export * from "./wishlistService/updateWishlistByRef";
 export * from "./wishlistService/updateWishlistItem";
-export * from "./wishlistService/updateWishlistItemByID";
 export * from "./wishlistService/deleteWishlistItemByID";
 export * from "./wishlistService/deleteWishlistItemByRef";
 export * from "./wishlistService/deleteWishlist";
-export * from "./wishlistService/deleteAllWishlist";
-export * from "./wishlistService/deleteWishlistByID";
-export * from "./wishlistService/deleteWishlistByRef";
-export * from "./wishlistService/getCustomersWithFlag";
-export * from "./wishlistService/resetWishlistItemFlag";
 export * from "./wishlistService/getItemsPopularity";
-export * from "./wishlistService/getOrCreateAnonymous";
-export * from "./wishlistService/mergeOnLogin";
-
-// Anonymous (guest) wishlist helpers
-export { resolveAnonymousIdentifier } from "./anonymous/identifier";
-export {
-   getAnonymousWishlistId,
-   resetAnonymousWishlistState,
-} from "./anonymous/anonymousState";
 
 // Customer API
-export * from "./customerService/customerLookup";
 export * from "./customerService/getCustomerByID";
 export * from "./customerService/getCusotmerByRef";
 export * from "./customerService/createCustomer";
 export * from "./customerService/updateCustomerByID";
 export * from "./customerService/updateCustomer";
-export * from "./customerService/updateCustomerByRef";
-export * from "./customerService/deleteCustomer";
-export * from "./customerService/deleteCustomerByID";
-export * from "./customerService/createBulkCustomers";
