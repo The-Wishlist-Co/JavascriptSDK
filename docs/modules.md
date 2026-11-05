@@ -4,6 +4,29 @@
 
 ## Table of contents
 
+### Classes
+
+- [TWCError](classes/TWCError.md)
+
+### Interfaces
+
+- [Customer](interfaces/Customer.md)
+- [CustomerWishlists](interfaces/CustomerWishlists.md)
+- [InterestSignup](interfaces/InterestSignup.md)
+- [SharedWishlist](interfaces/SharedWishlist.md)
+- [TWCClientOptions](interfaces/TWCClientOptions.md)
+- [WishlistItemsPage](interfaces/WishlistItemsPage.md)
+- [WishlistSummary](interfaces/WishlistSummary.md)
+
+### Type Aliases
+
+- [InterestKind](modules.md#interestkind)
+- [TWCClient](modules.md#twcclient)
+
+### Functions
+
+- [createTWCClient](modules.md#createtwcclient)
+
 ### customerService
 
 - [createCustomer](modules.md#createcustomer)
@@ -27,6 +50,69 @@
 - [getWishlistsByCustomer](modules.md#getwishlistsbycustomer)
 - [updateWishlist](modules.md#updatewishlist)
 - [updateWishlistItem](modules.md#updatewishlistitem)
+
+## Type Aliases
+
+### InterestKind
+
+Ƭ **InterestKind**: ``"notifyMe"`` \| ``"comingSoon"``
+
+#### Defined in
+
+[src/client/createTWCClient.ts:63](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/client/createTWCClient.ts#L63)
+
+___
+
+### TWCClient
+
+Ƭ **TWCClient**: `ReturnType`\<typeof [`createTWCClient`](modules.md#createtwcclient)\>
+
+#### Defined in
+
+[src/client/createTWCClient.ts:434](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/client/createTWCClient.ts#L434)
+
+## Functions
+
+### createTWCClient
+
+▸ **createTWCClient**(`options`): `Object`
+
+Creates a TWC client for server-side code. It requests and refreshes its own access token
+and offers operations scoped to one shopper: every operation on a wishlist or item first
+checks it belongs to the customer you pass, and returns not-found if it doesn't.
+
+Throws if created in a browser: the client holds your server credentials.
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `options` | [`TWCClientOptions`](interfaces/TWCClientOptions.md) |
+
+#### Returns
+
+`Object`
+
+| Name | Type |
+| :------ | :------ |
+| `ensureCustomer` | (`customer`: [`Customer`](interfaces/Customer.md), `details`: \{ `firstName?`: `string` ; `lastName?`: `string`  }) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `addItem` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`, `item`: \{ `attributeGroups?`: `unknown` ; `productRef`: `string` ; `variantRef`: `string` ; `wishlistItemRef?`: `string`  }) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `cancelInterest` | (`customer`: [`Customer`](interfaces/Customer.md), `variantRef`: `string`, `kind`: [`InterestKind`](modules.md#interestkind)) => `Promise`\<`void`\> |
+| `changeItemVariant` | (`customer`: [`Customer`](interfaces/Customer.md), `itemId`: `string`, `variantRef`: `string`) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `createWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlist`: \{ `description?`: `string` ; `isPrivate?`: `boolean` ; `name`: `string`  }) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `deleteWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`) => `Promise`\<`void`\> |
+| `getInterests` | (`customer`: [`Customer`](interfaces/Customer.md)) => `Promise`\<``null`` \| `Record`\<`string`, `any`\>\> |
+| `getSharedWishlist` | (`wishlistId`: `string`, `page`: \{ `lastItemId?`: `string` ; `pageSize?`: `number`  }) => `Promise`\<[`SharedWishlist`](interfaces/SharedWishlist.md)\> |
+| `getWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `getWishlistItems` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`, `page`: \{ `lastItemId?`: `string` ; `pageSize?`: `number`  }) => `Promise`\<[`WishlistItemsPage`](interfaces/WishlistItemsPage.md)\> |
+| `getWishlists` | (`customer`: [`Customer`](interfaces/Customer.md)) => `Promise`\<[`CustomerWishlists`](interfaces/CustomerWishlists.md)\> |
+| `registerInterest` | (`signup`: [`InterestSignup`](interfaces/InterestSignup.md)) => `Promise`\<`unknown`\> |
+| `removeItem` | (`customer`: [`Customer`](interfaces/Customer.md), `itemId`: `string`) => `Promise`\<`void`\> |
+| `renameWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`, `name`: `string`) => `Promise`\<`Record`\<`string`, `any`\>\> |
+
+#### Defined in
+
+[src/client/createTWCClient.ts:96](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/client/createTWCClient.ts#L96)
 
 ## customerService
 
@@ -53,7 +139,7 @@ Creates a new customer.
 
 #### Defined in
 
-[customerService/createCustomer.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/customerService/createCustomer.ts#L15)
+[src/customerService/createCustomer.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/createCustomer.ts#L15)
 
 ___
 
@@ -80,7 +166,7 @@ Retrieves customer information by ID.
 
 #### Defined in
 
-[customerService/getCustomerByID.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/customerService/getCustomerByID.ts#L15)
+[src/customerService/getCustomerByID.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/getCustomerByID.ts#L15)
 
 ___
 
@@ -107,7 +193,7 @@ Retrieves customer information by customer reference.
 
 #### Defined in
 
-[customerService/getCusotmerByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/customerService/getCusotmerByRef.ts#L15)
+[src/customerService/getCusotmerByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/getCusotmerByRef.ts#L15)
 
 ___
 
@@ -134,7 +220,7 @@ Updates a customer using the provided data.
 
 #### Defined in
 
-[customerService/updateCustomer.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/customerService/updateCustomer.ts#L17)
+[src/customerService/updateCustomer.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/updateCustomer.ts#L17)
 
 ___
 
@@ -162,7 +248,7 @@ Updates a customer by their ID.
 
 #### Defined in
 
-[customerService/updateCustomerByID.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/customerService/updateCustomerByID.ts#L17)
+[src/customerService/updateCustomerByID.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/updateCustomerByID.ts#L17)
 
 ## wishlistService
 
@@ -189,7 +275,7 @@ Creates a new wishlist.
 
 #### Defined in
 
-[wishlistService/createWishlist.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/createWishlist.ts#L15)
+[src/wishlistService/createWishlist.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/createWishlist.ts#L15)
 
 ___
 
@@ -216,7 +302,7 @@ Creates a wishlist item.
 
 #### Defined in
 
-[wishlistService/createWishlistItem.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/createWishlistItem.ts#L15)
+[src/wishlistService/createWishlistItem.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/createWishlistItem.ts#L15)
 
 ___
 
@@ -244,7 +330,7 @@ Deletes a wishlist by either ID or Ref.
 
 #### Defined in
 
-[wishlistService/deleteWishlist.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/deleteWishlist.ts#L17)
+[src/wishlistService/deleteWishlist.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/deleteWishlist.ts#L17)
 
 ___
 
@@ -271,7 +357,7 @@ Deletes a wishlist item by ID.
 
 #### Defined in
 
-[wishlistService/deleteWishlistItemByID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/deleteWishlistItemByID.ts#L16)
+[src/wishlistService/deleteWishlistItemByID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/deleteWishlistItemByID.ts#L16)
 
 ___
 
@@ -298,7 +384,7 @@ Deletes a wishlist item by its reference.
 
 #### Defined in
 
-[wishlistService/deleteWishlistItemByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/deleteWishlistItemByRef.ts#L15)
+[src/wishlistService/deleteWishlistItemByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/deleteWishlistItemByRef.ts#L15)
 
 ___
 
@@ -325,7 +411,7 @@ Show a count of the number of times an item has been wishlisted.
 
 #### Defined in
 
-[wishlistService/getItemsPopularity.ts:18](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/getItemsPopularity.ts#L18)
+[src/wishlistService/getItemsPopularity.ts:18](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getItemsPopularity.ts#L18)
 
 ___
 
@@ -355,7 +441,7 @@ Retrieves the wishlist data based on the provided parameters.
 
 #### Defined in
 
-[wishlistService/getWishlist.ts:22](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/getWishlist.ts#L22)
+[src/wishlistService/getWishlist.ts:22](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlist.ts#L22)
 
 ___
 
@@ -382,7 +468,7 @@ Retrieves a wishlist item by its ID.
 
 #### Defined in
 
-[wishlistService/getWishlistItemByID.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/getWishlistItemByID.ts#L17)
+[src/wishlistService/getWishlistItemByID.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistItemByID.ts#L17)
 
 ___
 
@@ -409,7 +495,7 @@ Retrieves a wishlist item by its reference.
 
 #### Defined in
 
-[wishlistService/getWishlistItemByRef.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/getWishlistItemByRef.ts#L16)
+[src/wishlistService/getWishlistItemByRef.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistItemByRef.ts#L16)
 
 ___
 
@@ -439,7 +525,7 @@ Retrieves wishlist items based on the provided parameters.
 
 #### Defined in
 
-[wishlistService/getWishlistItems.ts:21](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/getWishlistItems.ts#L21)
+[src/wishlistService/getWishlistItems.ts:21](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistItems.ts#L21)
 
 ___
 
@@ -472,7 +558,7 @@ the items for the wishlist the customer opens.
 
 #### Defined in
 
-[wishlistService/getWishlistsByCustomer.ts:24](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/getWishlistsByCustomer.ts#L24)
+[src/wishlistService/getWishlistsByCustomer.ts:24](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistsByCustomer.ts#L24)
 
 ___
 
@@ -499,7 +585,7 @@ Updates a wishlist.
 
 #### Defined in
 
-[wishlistService/updateWishlist.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/updateWishlist.ts#L17)
+[src/wishlistService/updateWishlist.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/updateWishlist.ts#L17)
 
 ___
 
@@ -526,4 +612,4 @@ Updates a wishlist item.
 
 #### Defined in
 
-[wishlistService/updateWishlistItem.ts:18](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/95ef5e7decb85ab18cf32f8fe935ee4f60d4634a/src/wishlistService/updateWishlistItem.ts#L18)
+[src/wishlistService/updateWishlistItem.ts:18](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/updateWishlistItem.ts#L18)
