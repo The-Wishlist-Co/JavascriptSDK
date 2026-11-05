@@ -12,6 +12,7 @@ export * from "./wishlistService/getWishlist";
 export * from "./wishlistService/getWishlistItemByID";
 export * from "./wishlistService/getWishlistItemByRef";
 export * from "./wishlistService/getWishlistItems";
+export * from "./wishlistService/getWishlistsByCustomer";
 export * from "./wishlistService/updateWishlistItemByRef";
 export * from "./wishlistService/getWishlistByCustomer";
 export * from "./wishlistService/createWishlistItem";

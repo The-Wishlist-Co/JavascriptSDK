@@ -306,6 +306,38 @@ function getWishlistItems(obj) {
   });
 }
 
+// src/wishlistService/getWishlistsByCustomer.ts
+function getWishlistsByCustomer(obj) {
+  if (!obj.customerID && !obj.customerRef && !obj.email) {
+    obj.onError(new Error("One of customerID, customerRef or email must be defined."));
+    return;
+  }
+  const params = new URLSearchParams();
+  obj.customerID && params.append("customerId", obj.customerID);
+  obj.customerRef && params.append("customerRef", obj.customerRef);
+  obj.email && params.append("email", obj.email);
+  if (obj.pageSize)
+    params.append("pageSize", obj.pageSize.toString());
+  if (obj.lastItemId)
+    params.append("lastItemId", obj.lastItemId);
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlists/byCustomer?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
+  }).then((response) => {
+    obj.onSuccess(response.data);
+  }).catch((error) => {
+    obj.onError((error == null ? void 0 : error.response) || error);
+  });
+}
+
 // src/wishlistService/updateWishlistItemByRef.ts
 function updateWishlistItemByRef(obj) {
   resolveToken(obj.token).then((token) => {
@@ -1187,4 +1219,4 @@ function createBulkCustomers(obj) {
   });
 }
 
-export { createBulkCustomers, createCustomer, createWishlist, createWishlistItem, customerLookup, deleteAllWishlist, deleteCustomer, deleteCustomerByID, deleteWishlist, deleteWishlistByID, deleteWishlistByRef, deleteWishlistItemByID, deleteWishlistItemByRef, getAnonymousWishlistId, getCustomerByID, getCustomerByRef, getCustomersWithFlag, getItemsPopularity, getOrCreateAnonymous, getWishlist, getWishlistByCustomer, getWishlistByCustomerID, getWishlistByCustomerRef, getWishlistByID, getWishlistByRef, getWishlistItemByID, getWishlistItemByRef, getWishlistItems, initTWC, invalidateToken, mergeOnLogin, resetAnonymousWishlistState, resetWishlistItemFlag, resolveAnonymousIdentifier, resolveToken, updateCustomer, updateCustomerByID, updateCustomerByRef, updateWishlist, updateWishlistByID, updateWishlistByRef, updateWishlistItem, updateWishlistItemByID, updateWishlistItemByRef };
+export { createBulkCustomers, createCustomer, createWishlist, createWishlistItem, customerLookup, deleteAllWishlist, deleteCustomer, deleteCustomerByID, deleteWishlist, deleteWishlistByID, deleteWishlistByRef, deleteWishlistItemByID, deleteWishlistItemByRef, getAnonymousWishlistId, getCustomerByID, getCustomerByRef, getCustomersWithFlag, getItemsPopularity, getOrCreateAnonymous, getWishlist, getWishlistByCustomer, getWishlistByCustomerID, getWishlistByCustomerRef, getWishlistByID, getWishlistByRef, getWishlistItemByID, getWishlistItemByRef, getWishlistItems, getWishlistsByCustomer, initTWC, invalidateToken, mergeOnLogin, resetAnonymousWishlistState, resetWishlistItemFlag, resolveAnonymousIdentifier, resolveToken, updateCustomer, updateCustomerByID, updateCustomerByRef, updateWishlist, updateWishlistByID, updateWishlistByRef, updateWishlistItem, updateWishlistItemByID, updateWishlistItemByRef };

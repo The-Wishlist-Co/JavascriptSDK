@@ -312,6 +312,38 @@ function getWishlistItems(obj) {
   });
 }
 
+// src/wishlistService/getWishlistsByCustomer.ts
+function getWishlistsByCustomer(obj) {
+  if (!obj.customerID && !obj.customerRef && !obj.email) {
+    obj.onError(new Error("One of customerID, customerRef or email must be defined."));
+    return;
+  }
+  const params = new URLSearchParams();
+  obj.customerID && params.append("customerId", obj.customerID);
+  obj.customerRef && params.append("customerRef", obj.customerRef);
+  obj.email && params.append("email", obj.email);
+  if (obj.pageSize)
+    params.append("pageSize", obj.pageSize.toString());
+  if (obj.lastItemId)
+    params.append("lastItemId", obj.lastItemId);
+  resolveToken(obj.token).then((token) => {
+    return axiosInstance.get(
+      `/wsservice/api/wishlists/byCustomer?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-TWC-Tenant": obj.tenant
+        }
+      }
+    );
+  }).then((response) => {
+    obj.onSuccess(response.data);
+  }).catch((error) => {
+    obj.onError((error == null ? void 0 : error.response) || error);
+  });
+}
+
 // src/wishlistService/updateWishlistItemByRef.ts
 function updateWishlistItemByRef(obj) {
   resolveToken(obj.token).then((token) => {
@@ -1221,6 +1253,7 @@ exports.getWishlistByRef = getWishlistByRef;
 exports.getWishlistItemByID = getWishlistItemByID;
 exports.getWishlistItemByRef = getWishlistItemByRef;
 exports.getWishlistItems = getWishlistItems;
+exports.getWishlistsByCustomer = getWishlistsByCustomer;
 exports.initTWC = initTWC;
 exports.invalidateToken = invalidateToken;
 exports.mergeOnLogin = mergeOnLogin;

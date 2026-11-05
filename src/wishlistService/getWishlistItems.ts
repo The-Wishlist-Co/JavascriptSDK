@@ -19,8 +19,8 @@ import { resolveToken } from "../auth/proxyAuth";
  * @param obj.onError - The callback function to handle error response.
  */
 export function getWishlistItems(obj: {
-  wishlistID: string;
-  wishlistRef: string;
+  wishlistID?: string;
+  wishlistRef?: string;
   pageSize?: string;
   lastItemId?: string;
   token?: string;

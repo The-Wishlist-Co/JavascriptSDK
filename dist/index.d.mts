@@ -209,9 +209,38 @@ declare function getWishlistItemByRef(obj: {
  * @param obj.onError - The callback function to handle error response.
  */
 declare function getWishlistItems(obj: {
-    wishlistID: string;
-    wishlistRef: string;
+    wishlistID?: string;
+    wishlistRef?: string;
     pageSize?: string;
+    lastItemId?: string;
+    token?: string;
+    tenant: string;
+    onSuccess: (response: any) => void;
+    onError: (error: any) => void;
+}): void;
+
+/**
+ * Retrieves all wishlists for a customer, without their items. The response includes
+ * `totalItemsAllWishlists` and each wishlist's details; use {@link getWishlistItems} to load
+ * the items for the wishlist the customer opens.
+ *
+ * @group wishlistService
+ * @param obj - The configuration object.
+ * @param obj.customerID - The TWC ID of the customer (one of customerID, customerRef or email must be defined).
+ * @param obj.customerRef - The customer reference, i.e. the Shopify customer ID (one of customerID, customerRef or email must be defined).
+ * @param obj.email - The customer's email (one of customerID, customerRef or email must be defined).
+ * @param obj.pageSize - The number of wishlists to retrieve per page.
+ * @param obj.lastItemId - The ID of the last wishlist retrieved.
+ * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.tenant - The tenant identifier.
+ * @param obj.onSuccess - The callback function to handle a successful response.
+ * @param obj.onError - The callback function to handle an error response.
+ */
+declare function getWishlistsByCustomer(obj: {
+    customerID?: string;
+    customerRef?: string;
+    email?: string;
+    pageSize?: number;
     lastItemId?: string;
     token?: string;
     tenant: string;
@@ -955,4 +984,4 @@ declare function createBulkCustomers(obj: {
     onError: (error: any) => void;
 }): void;
 
-export { type TWCConfig, createBulkCustomers, createCustomer, createWishlist, createWishlistItem, customerLookup, deleteAllWishlist, deleteCustomer, deleteCustomerByID, deleteWishlist, deleteWishlistByID, deleteWishlistByRef, deleteWishlistItemByID, deleteWishlistItemByRef, getAnonymousWishlistId, getCustomerByID, getCustomerByRef, getCustomersWithFlag, getItemsPopularity, getOrCreateAnonymous, getWishlist, getWishlistByCustomer, getWishlistByCustomerID, getWishlistByCustomerRef, getWishlistByID, getWishlistByRef, getWishlistItemByID, getWishlistItemByRef, getWishlistItems, initTWC, invalidateToken, mergeOnLogin, resetAnonymousWishlistState, resetWishlistItemFlag, resolveAnonymousIdentifier, resolveToken, updateCustomer, updateCustomerByID, updateCustomerByRef, updateWishlist, updateWishlistByID, updateWishlistByRef, updateWishlistItem, updateWishlistItemByID, updateWishlistItemByRef };
+export { type TWCConfig, createBulkCustomers, createCustomer, createWishlist, createWishlistItem, customerLookup, deleteAllWishlist, deleteCustomer, deleteCustomerByID, deleteWishlist, deleteWishlistByID, deleteWishlistByRef, deleteWishlistItemByID, deleteWishlistItemByRef, getAnonymousWishlistId, getCustomerByID, getCustomerByRef, getCustomersWithFlag, getItemsPopularity, getOrCreateAnonymous, getWishlist, getWishlistByCustomer, getWishlistByCustomerID, getWishlistByCustomerRef, getWishlistByID, getWishlistByRef, getWishlistItemByID, getWishlistItemByRef, getWishlistItems, getWishlistsByCustomer, initTWC, invalidateToken, mergeOnLogin, resetAnonymousWishlistState, resetWishlistItemFlag, resolveAnonymousIdentifier, resolveToken, updateCustomer, updateCustomerByID, updateCustomerByRef, updateWishlist, updateWishlistByID, updateWishlistByRef, updateWishlistItem, updateWishlistItemByID, updateWishlistItemByRef };
