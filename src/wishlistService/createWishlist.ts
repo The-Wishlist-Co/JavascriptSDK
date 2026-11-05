@@ -7,14 +7,14 @@ import { resolveToken } from "../auth/proxyAuth";
  * @group wishlistService
  * @param obj - The configuration object.
  * @param obj.newWishlistBody - The body of the new wishlist. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#ceate-a-wishlist for information on the fields.
- * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.token - An access token from your TWC server API client. Keep it on your server; never send it to a browser.
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - The callback function to be called on successful creation.
  * @param obj.onError - The callback function to be called on error.
  */
 export function createWishlist(obj: {
   newWishlistBody: { [key: string]: any };
-  token?: string;
+  token: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;

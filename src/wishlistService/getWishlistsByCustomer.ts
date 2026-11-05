@@ -16,7 +16,7 @@ import { resolveToken } from "../auth/proxyAuth";
  * @param obj.email - The customer's email (one of customerID, customerRef or email must be defined).
  * @param obj.pageSize - The number of wishlists to retrieve per page.
  * @param obj.lastItemId - The ID of the last wishlist retrieved.
- * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.token - An access token from your TWC server API client. Keep it on your server; never send it to a browser.
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - The callback function to handle a successful response.
  * @param obj.onError - The callback function to handle an error response.
@@ -27,7 +27,7 @@ export function getWishlistsByCustomer(obj: {
   email?: string;
   pageSize?: number;
   lastItemId?: string;
-  token?: string;
+  token: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;

@@ -7,14 +7,14 @@ import { resolveToken } from "../auth/proxyAuth";
  * @group customerService
  * @param obj - The configuration object.
  * @param obj.createCustomerBody - The body of the request containing the customer data. See https://the-wishlist-co.github.io/docs/customersvcApi.html#create-a-customer for information on the fields.
- * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.token - An access token from your TWC server API client. Keep it on your server; never send it to a browser.
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - The callback function to be called when the request is successful.
  * @param obj.onError - The callback function to be called when an error occurs.
  */
 export function createCustomer(obj: {
   createCustomerBody: { [key: string]: any };
-  token?: string;
+  token: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;

@@ -1,3 +1,9 @@
+# @thewishlistco/twc
+
+The TWC JavaScript SDK: a convenience wrapper around the TWC REST API for wishlists and customers.
+
+> **Server-side only.** Use this library in server code, for example a Node back end, Shopify Hydrogen loaders and actions, or Next.js route handlers and server actions. Every function needs an access token from your TWC server API client. That token must never reach a browser, so never use this library in browser code.
+
 ## Install
 
 ```
@@ -12,136 +18,100 @@ yarn add @thewishlistco/twc
 
 ## Authentication
 
-The SDK supports two authentication methods:
+TWC issues a confidential API client (client ID and secret) for your store. Contact TWC for your credentials.
 
-### Shopify Proxy Auth (Recommended for Shopify clients)
-
-For Shopify storefronts, the SDK can obtain an access token automatically through the Shopify App Proxy. This means you don't need to manage secrets on the client side.
-
-**Prerequisites:**
-1. The TWC Proxy App must be installed on your Shopify store.
-2. The Proxy App secret key must be configured in the TWC Admin Console.
-
-**Usage:**
+Your server requests an access token with the OAuth 2.0 client-credentials grant, and passes it to every function as `token`, together with your `tenant`:
 
 ```js
-import { initTWC, getWishlistByCustomerRef } from "@thewishlistco/twc";
+// Server code only. Cache the token and request a new one shortly before it expires.
+async function getServerToken() {
+  const res = await fetch(
+    `https://auth.au-aws.thewishlist.io/auth/realms/${process.env.TWC_TENANT}/protocol/openid-connect/token`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: process.env.TWC_CLIENT_ID,
+        client_secret: process.env.TWC_CLIENT_SECRET,
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`TWC token request failed: ${res.status}`);
+  return (await res.json()).access_token; // also returns expires_in (seconds)
+}
+```
 
-// Call once on page load
-initTWC({ shopDomain: "mystore.myshopify.com" });
+## Security
 
-// No token needed -- the SDK fetches it via the proxy automatically
-getWishlistByCustomerRef({
-  customerRef: "<customer ref>",
-  tenant: "<tenant id>",
-  onSuccess: (response) => {
-    console.log(response);
-  },
-  onError: (error) => {
-    console.error(error);
-  },
+- **Keep credentials on your server.**
+  - Store the client secret in your secrets manager or server environment variables.
+  - Never put the secret or a token in browser code, JavaScript bundles, source maps, logs or a code repository.
+  - Never return a token to the browser from an endpoint of your own.
+  - Use separate credentials for staging and production.
+  - Tell TWC immediately if you suspect exposure, and we'll rotate them.
+- **Act only for the logged-in customer.** Your credentials can read and change data for every customer in your store, so your server must:
+  - take the customer's email and Shopify customer ID from the authenticated session, never from the request;
+  - before using a `wishlistID` or `wishlistItemID` that came from the browser, check that it belongs to that customer;
+  - return only the fields your UI needs, never raw TWC responses.
+
+## Usage: show a customer's wishlists
+
+Load the wishlist list first, then the items for the wishlist the customer opens:
+
+```js
+import { getWishlistsByCustomer, getWishlistItems } from "@thewishlistco/twc";
+
+const customerRef = session.customer.id; // the Shopify customer ID from the verified session
+const token = await getServerToken();
+const tenant = process.env.TWC_TENANT;
+
+// 1. All wishlists (no items): totalItemsAllWishlists for the header count, plus each list's name and item count
+getWishlistsByCustomer({
+  customerRef,
+  token,
+  tenant,
+  onSuccess: (response) => { /* response.totalItemsAllWishlists, response.wishlists */ },
+  onError: (error) => { /* handle; never log the token */ },
+});
+
+// 2. Items for the wishlist the customer opens (paginated with pageSize / lastItemId).
+//    wishlistID must be one of this customer's wishlists from step 1.
+getWishlistItems({
+  wishlistID,
+  pageSize: "20",
+  token,
+  tenant,
+  onSuccess: (response) => { /* render items */ },
+  onError: (error) => { /* handle */ },
 });
 ```
 
-### Direct Token Auth
+## Functions
 
-For non-Shopify clients, or when you manage your own token, pass it directly to each function call:
+**Wishlists:** `getWishlistsByCustomer`, `getWishlist`, `createWishlist`, `updateWishlist`, `deleteWishlist`
 
-```js
-import { getWishlistByCustomerRef } from "@thewishlistco/twc";
+**Wishlist items:** `getWishlistItems`, `getWishlistItemByID`, `getWishlistItemByRef`, `createWishlistItem`, `updateWishlistItem`, `deleteWishlistItemByID`, `deleteWishlistItemByRef`, `getItemsPopularity`
 
-getWishlistByCustomerRef({
-  customerRef: "<customer ref>",
-  token: "<your token>",
-  tenant: "<tenant id>",
-  onSuccess: (response) => {
-    console.log(response);
-  },
-  onError: (error) => {
-    console.error(error);
-  },
-});
-```
+**Customers:** `getCustomerByID`, `getCustomerByRef`, `createCustomer`, `updateCustomer`, `updateCustomerByID`
 
-## Guest (anonymous) Wishlists
+See the full [API documentation](docs/modules.md) for every function's parameters.
 
-Shoppers can build a wishlist before they log in. The SDK resolves a durable
-identifier in the browser itself and sends it as `onlineSessionID`, so the list
-survives closing and reopening the browser.
+## Upgrading from 0.2
 
-**Integrators must never construct or pass an identifier** — resolution is entirely
-inside the SDK. It prefers Shopify's `_shopify_y` cookie (~1 year, set by the Shopify
-edge) and falls back to its own `twc_awid` cookie, minting one when needed, so the
-list keeps working when the shopper declines analytics.
+Version 0.3.0 is server-side only.
 
-### On logged-out pages
+- `token` is required on every function. Shopify proxy authentication (`initTWC`, `resolveToken`, `invalidateToken`) has been removed: the proxy token cannot call these APIs.
+- Guest wishlist functions (`getOrCreateAnonymous`, `mergeOnLogin`, `resetAnonymousWishlistState`, `getAnonymousWishlistId`, `resolveAnonymousIdentifier`) have been removed. Guest wishlists are not currently supported.
+- Functions that called deprecated endpoints have been removed. Use these instead:
 
-```js
-import { initTWC, getOrCreateAnonymous } from "@thewishlistco/twc";
+| Removed | Use instead |
+| --- | --- |
+| `getWishlistByCustomer`, `getWishlistByCustomerID`, `getWishlistByCustomerRef` | `getWishlistsByCustomer`, then `getWishlistItems` |
+| `getWishlistByID`, `getWishlistByRef` | `getWishlist` |
+| `updateWishlistByID`, `updateWishlistByRef` | `updateWishlist` |
+| `deleteWishlistByID`, `deleteWishlistByRef` | `deleteWishlist` |
+| `updateWishlistItemByID`, `updateWishlistItemByRef` | `updateWishlistItem` |
+| `updateCustomerByRef` | `updateCustomer` |
 
-initTWC({ shopDomain: "mystore.myshopify.com" });
-
-getOrCreateAnonymous({
-  tenant: "<tenant id>",
-  onSuccess: (wishlist) => {
-    // `null` means the SDK deliberately did nothing (see "Silent no-ops" below).
-    if (wishlist) render(wishlist);
-  },
-  onError: (error) => console.error(error),
-});
-```
-
-`getOrCreateAnonymous` is create-or-return, so it is safe on every logged-out page
-load. It stores the returned `WishlistDto.id`, which is what the merge needs.
-
-Do **not** call it on authenticated pages — it creates an anonymous customer and
-wishlist as a side effect.
-
-### On authenticated pages
-
-```js
-import { mergeOnLogin } from "@thewishlistco/twc";
-
-mergeOnLogin({
-  customerEmail: "<the logged-in customer's real email>",
-  tenant: "<tenant id>",
-  onSuccess: () => refreshWishlist(),
-  onError: (error) => console.error(error),
-});
-```
-
-`mergeOnLogin` picks up the stored anonymous wishlist id automatically. It is
-idempotent, does not block render, and stays quiet if the shopper is not yet a TWC
-customer. Merging twice changes nothing.
-
-Optional fields: `anonymousWishlistId` (overrides the stored one), `customerRef`,
-`wishlistRef` (target list; otherwise the customer's default), `wishlistName` (used
-only if a new default list is created).
-
-On logout — or when a different customer signs in during the same session — call
-`resetAnonymousWishlistState()` so a fresh guest list can be created and merged again.
-
-### Silent no-ops
-
-Both functions invoke `onSuccess(null)` and never `onError` when:
-
-- no durable identifier is available (e.g. cookies blocked in private browsing),
-- guest wishlists are disabled for the tenant:
-  `initTWC({ shopDomain, anonymousWishlistEnabled: false })`,
-- (`mergeOnLogin` only) a merge already ran this session, `customerEmail` is blank,
-  no anonymous wishlist id is known, or the backend returns 404 because the customer
-  or the anonymous list was not found.
-
-Nothing is ever surfaced to the shopper in these cases.
-
-### Token expiry
-
-There is no refresh-token flow, so expiry is handled by re-requesting. If any SDK
-call gets a 401 while using a proxy-issued token, the SDK drops the cached token,
-requests a new one and retries the call once. Tokens you pass in yourself are left
-alone, since the SDK cannot refresh them. `invalidateToken()` is exported if you need
-to force a refresh.
-
-## API Reference
-
-See the full [API documentation](docs/modules.md) for all available functions and their parameters.
+- Back-office functions have been removed: `createBulkCustomers`, `customerLookup`, `deleteCustomer`, `deleteCustomerByID`, `deleteAllWishlist`, `getCustomersWithFlag`, `resetWishlistItemFlag`.

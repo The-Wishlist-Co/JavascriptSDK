@@ -7,14 +7,14 @@ import { resolveToken } from "../auth/proxyAuth";
  * @group customerService
  * @param obj - The configuration object.
  * @param obj.customerID - The ID of the customer to retrieve.
- * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.token - An access token from your TWC server API client. Keep it on your server; never send it to a browser.
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - The callback function to handle the successful response.
  * @param obj.onError - The callback function to handle any errors.
  */
 export function getCustomerByID(obj: {
   customerID: string;
-  token?: string;
+  token: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;

@@ -1,6 +1,6 @@
 {
    "name": "@thewishlistco/twc",
-   "version": "0.2.0",
+   "version": "0.3.0",
    "scripts": {
       "build": "tsup",
       "docs": "typedoc ./src/index.ts --out docs -plugin typedoc-plugin-markdown"
@@ -25,7 +25,7 @@
       "typedoc-plugin-markdown": "^3.17.1",
       "typescript": "^5.4.5"
    },
-   "description": "npm install @thewishlistco/twc",
+   "description": "TWC JavaScript SDK for server-side use: wishlists and customers via the TWC REST API.",
    "directories": {
       "doc": "docs"
    },
