@@ -1,8 +1,9 @@
 {
    "name": "@thewishlistco/twc",
-   "version": "0.3.0",
+   "version": "1.0.0",
    "scripts": {
       "build": "tsup",
+      "test": "tsup && node --test test/",
       "docs": "typedoc ./src/index.ts --out docs -plugin typedoc-plugin-markdown"
    },
    "exports": {

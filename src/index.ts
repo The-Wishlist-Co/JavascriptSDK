@@ -2,6 +2,21 @@
 // Proxy auth (initTWC) and guest wishlists (getOrCreateAnonymous / mergeOnLogin) are not exported:
 // the Shopify proxy token cannot call these APIs, and guest wishlists are not currently supported.
 
+// Server client (recommended): tokens handled for you, operations scoped to the logged-in customer
+export { createTWCClient } from "./client/createTWCClient";
+export type {
+  TWCClient,
+  TWCClientOptions,
+  Customer,
+  CustomerWishlists,
+  WishlistSummary,
+  WishlistItemsPage,
+  SharedWishlist,
+  InterestSignup,
+  InterestKind,
+} from "./client/createTWCClient";
+export { TWCError } from "./client/errors";
+
 // Wishlist API
 export * from "./wishlistService/getWishlist";
 export * from "./wishlistService/getWishlistItemByID";
