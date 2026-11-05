@@ -9,7 +9,7 @@ import { resolveToken } from "../auth/proxyAuth";
  * @param obj - The configuration object.
  * @param obj.customerID - The ID of the customer to update.
  * @param obj.updateCustomerBody - The updated customer data. See https://the-wishlist-co.github.io/docs/customersvcApi.html#update for information on the fields.
- * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.token - An access token from your TWC server API client. Keep it on your server; never send it to a browser.
  * @param obj.tenant - The tenant ID.
  * @param obj.onSuccess - The callback function to be called on successful update.
  * @param obj.onError - The callback function to be called on error.
@@ -17,7 +17,7 @@ import { resolveToken } from "../auth/proxyAuth";
 export function updateCustomerByID(obj: {
   customerID: string;
   updateCustomerBody: { [key: string]: any };
-  token?: string;
+  token: string;
   tenant: string;
   onSuccess: (response: any) => void;
   onError: (error: any) => void;

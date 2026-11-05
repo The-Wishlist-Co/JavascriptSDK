@@ -6,6 +6,37 @@ function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
 
 var axios__default = /*#__PURE__*/_interopDefault(axios);
 
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -27,199 +58,497 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 
-// src/config.ts
-var config = null;
-function initTWC(cfg) {
-  config = cfg;
+// src/client/errors.ts
+var TWCError = class extends Error {
+  constructor(message, status, code) {
+    super(message);
+    this.name = "TWCError";
+    this.status = status;
+    this.code = code;
+  }
+};
+function codeForStatus(status) {
+  if (status === 400)
+    return "bad_request";
+  if (status === 401)
+    return "unauthorized";
+  if (status === 403)
+    return "forbidden";
+  if (status === 404)
+    return "not_found";
+  if (status === 409)
+    return "conflict";
+  if (status === 429)
+    return "rate_limited";
+  return "server_error";
 }
-function getConfig() {
-  return config;
+function notFound(what) {
+  return new TWCError(`${what} not found`, 404, "not_found");
 }
-function isAnonymousWishlistEnabled() {
-  return (config == null ? void 0 : config.anonymousWishlistEnabled) !== false;
+function invalidArgument(message) {
+  return new TWCError(message, 0, "invalid_argument");
 }
-var cachedToken = null;
-var cacheExpiry = 0;
-var inFlight = null;
-var CACHE_TTL_MS = 4 * 60 * 1e3;
+
+// src/client/tokens.ts
+var REFRESH_BEFORE_EXPIRY_MS = 30 * 1e3;
+var TokenManager = class {
+  constructor(tokenUrl, clientId, clientSecret, fetchImpl) {
+    this.tokenUrl = tokenUrl;
+    this.clientId = clientId;
+    this.clientSecret = clientSecret;
+    this.fetchImpl = fetchImpl;
+    this.token = null;
+    this.expiresAt = 0;
+    this.inFlight = null;
+  }
+  /** A valid token, requesting a new one when there is none or it expires within 30 seconds. */
+  get() {
+    if (this.token && Date.now() < this.expiresAt - REFRESH_BEFORE_EXPIRY_MS) {
+      return Promise.resolve(this.token);
+    }
+    if (!this.inFlight) {
+      this.inFlight = this.request().then(
+        (token) => {
+          this.inFlight = null;
+          return token;
+        },
+        (error) => {
+          this.inFlight = null;
+          throw error;
+        }
+      );
+    }
+    return this.inFlight;
+  }
+  /** Drop the cached token, e.g. after TWC rejects it with a 401. */
+  invalidate() {
+    this.token = null;
+    this.expiresAt = 0;
+  }
+  request() {
+    return __async(this, null, function* () {
+      let res;
+      try {
+        res = yield this.fetchImpl(this.tokenUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "client_credentials",
+            client_id: this.clientId,
+            client_secret: this.clientSecret
+          }).toString()
+        });
+      } catch (e) {
+        throw new TWCError("TWC token request failed: no response", 0, "network_error");
+      }
+      if (!res.ok) {
+        throw new TWCError(`TWC token request failed with ${res.status}`, res.status, "auth_failed");
+      }
+      const data = yield res.json().catch(() => null);
+      if (!data || typeof data.access_token !== "string") {
+        throw new TWCError("TWC token request returned no access token", res.status, "auth_failed");
+      }
+      this.token = data.access_token;
+      this.expiresAt = Date.now() + (Number(data.expires_in) || 60) * 1e3;
+      return data.access_token;
+    });
+  }
+};
+
+// src/client/createTWCClient.ts
+var API_BASE = "https://api.au-aws.thewishlist.io/services";
+var AUTH_BASE = "https://auth.au-aws.thewishlist.io/auth/realms";
+var WISHLISTS_PAGE_SIZE = 100;
+var CUSTOMER_ID_CACHE_MS = 5 * 60 * 1e3;
+var CUSTOMER_UPDATE_FIELDS = [
+  "addresses",
+  "alternateCustomerRef",
+  "attributeGroups",
+  "dob",
+  "email",
+  "firstName",
+  "joinedStoreId",
+  "joinedStoreName",
+  "lastName",
+  "loyaltyTier",
+  "memberSince",
+  "mobile",
+  "optin_preferences",
+  "phone",
+  "preferredStore",
+  "spendToNextTier",
+  "vipStatus"
+];
+function createTWCClient(options) {
+  if (typeof document !== "undefined") {
+    throw new TWCError(
+      "The TWC client is server-side only: it holds your TWC server credentials, which must never reach a browser.",
+      0,
+      "browser_not_supported"
+    );
+  }
+  const { tenant, clientId, clientSecret } = options || {};
+  if (!tenant || !clientId || !clientSecret) {
+    throw invalidArgument("createTWCClient needs tenant, clientId and clientSecret.");
+  }
+  const fetchImpl = options.fetch || globalThis.fetch;
+  if (typeof fetchImpl !== "function") {
+    throw invalidArgument("No fetch implementation available; pass one as options.fetch.");
+  }
+  const tokens = new TokenManager(
+    `${AUTH_BASE}/${encodeURIComponent(tenant)}/protocol/openid-connect/token`,
+    clientId,
+    clientSecret,
+    fetchImpl
+  );
+  const customerIds = /* @__PURE__ */ new Map();
+  function request(_0, _1, _2) {
+    return __async(this, arguments, function* (method, path, label, opts = {}, retried = false) {
+      const url = new URL(API_BASE + path);
+      const query = opts.query || {};
+      for (const key of Object.keys(query)) {
+        const value = query[key];
+        if (value !== void 0 && value !== "")
+          url.searchParams.append(key, String(value));
+      }
+      const token = yield tokens.get();
+      let res;
+      try {
+        res = yield fetchImpl(url.toString(), {
+          method,
+          headers: __spreadValues({
+            Authorization: `Bearer ${token}`,
+            "X-TWC-Tenant": tenant
+          }, opts.body !== void 0 ? { "Content-Type": "application/json" } : {}),
+          body: opts.body !== void 0 ? JSON.stringify(opts.body) : void 0
+        });
+      } catch (e) {
+        throw new TWCError(`TWC ${label} failed: no response`, 0, "network_error");
+      }
+      if (res.status === 401 && !retried) {
+        tokens.invalidate();
+        return request(method, path, label, opts, true);
+      }
+      if (res.status === 404 && opts.allow404)
+        return null;
+      if (!res.ok) {
+        throw new TWCError(`TWC ${label} failed with ${res.status}`, res.status, codeForStatus(res.status));
+      }
+      const text = yield res.text();
+      if (!text)
+        return null;
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new TWCError(`TWC ${label} returned a response that is not JSON`, res.status, "server_error");
+      }
+    });
+  }
+  function checkCustomer(customer) {
+    if (!customer || typeof customer.customerRef !== "string" || !customer.customerRef.trim() || typeof customer.email !== "string" || !customer.email.trim()) {
+      throw invalidArgument("customer needs customerRef and email from the verified session.");
+    }
+  }
+  function checkId(value, name) {
+    if (typeof value !== "string" || !value.trim())
+      throw invalidArgument(`${name} is required.`);
+  }
+  const getCustomerByRef2 = (ref) => request("GET", `/customerservice/api/v2/customers/${encodeURIComponent(ref)}/ref`, "GET customers/{customerRef}/ref", { allow404: true });
+  const getCustomerByEmail = (email) => request("GET", `/customerservice/api/v2/customers/${encodeURIComponent(email)}/email`, "GET customers/{email}/email", { allow404: true });
+  function findCustomer(customer) {
+    return __async(this, null, function* () {
+      const byRef = yield getCustomerByRef2(customer.customerRef);
+      if (byRef)
+        return byRef;
+      const byEmail = yield getCustomerByEmail(customer.email);
+      if (byEmail && (!byEmail.customerRef || byEmail.customerRef === customer.customerRef))
+        return byEmail;
+      return null;
+    });
+  }
+  function customerId(customer, create) {
+    return __async(this, null, function* () {
+      const cached = customerIds.get(customer.customerRef);
+      if (cached && Date.now() < cached.expiresAt)
+        return cached.id;
+      const record = create ? yield ensureCustomer(customer) : yield findCustomer(customer);
+      if (!record || !record.id)
+        return null;
+      if (record.customerRef === customer.customerRef) {
+        customerIds.set(customer.customerRef, { id: record.id, expiresAt: Date.now() + CUSTOMER_ID_CACHE_MS });
+      }
+      return record.id;
+    });
+  }
+  function listWishlists(id) {
+    return __async(this, null, function* () {
+      const data = yield request("GET", "/wsservice/api/wishlists/byCustomer", "GET wishlists/byCustomer", {
+        query: { customerId: id, pageSize: WISHLISTS_PAGE_SIZE },
+        allow404: true
+      });
+      return {
+        totalItemsAllWishlists: Number(data == null ? void 0 : data.totalItemsAllWishlists) || 0,
+        wishlists: Array.isArray(data == null ? void 0 : data.wishlists) ? data.wishlists : []
+      };
+    });
+  }
+  function assertOwnsWishlist(customer, wishlistId) {
+    return __async(this, null, function* () {
+      const id = yield customerId(customer, false);
+      if (!id)
+        throw notFound("Wishlist");
+      const { wishlists } = yield listWishlists(id);
+      if (!wishlists.some((w) => w.id === wishlistId))
+        throw notFound("Wishlist");
+      return id;
+    });
+  }
+  function ownedItem(customer, itemId) {
+    return __async(this, null, function* () {
+      const item = yield request("GET", `/wsservice/api/wishlist/items/${encodeURIComponent(itemId)}`, "GET wishlist/items/{id}", { allow404: true });
+      if (!item || typeof item.wishlistId !== "string")
+        throw notFound("Wishlist item");
+      yield assertOwnsWishlist(customer, item.wishlistId).catch((e) => {
+        throw e instanceof TWCError && e.code === "not_found" ? notFound("Wishlist item") : e;
+      });
+      return item;
+    });
+  }
+  function ensureCustomer(_0) {
+    return __async(this, arguments, function* (customer, details = {}) {
+      checkCustomer(customer);
+      const byRef = yield getCustomerByRef2(customer.customerRef);
+      if (byRef)
+        return byRef;
+      const byEmail = yield getCustomerByEmail(customer.email);
+      if (byEmail) {
+        if (byEmail.customerRef && byEmail.customerRef !== customer.customerRef) {
+          throw new TWCError("This email belongs to a TWC customer linked to another Shopify customer.", 409, "customer_conflict");
+        }
+        const body = { id: byEmail.id };
+        for (const field of CUSTOMER_UPDATE_FIELDS) {
+          if (byEmail[field] !== void 0 && byEmail[field] !== null)
+            body[field] = byEmail[field];
+        }
+        return request("PUT", "/customerservice/api/v2/customers", "PUT customers", {
+          query: { customerRef: customer.customerRef },
+          body
+        });
+      }
+      return request("POST", "/customerservice/api/v2/customers", "POST customers", {
+        body: __spreadValues(__spreadValues({
+          email: customer.email,
+          customerRef: customer.customerRef
+        }, details.firstName ? { firstName: details.firstName } : {}), details.lastName ? { lastName: details.lastName } : {})
+      });
+    });
+  }
+  return {
+    ensureCustomer,
+    /** All of the customer's wishlists, without items. Empty when the customer has no TWC record yet. */
+    getWishlists(customer) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        const id = yield customerId(customer, false);
+        return id ? listWishlists(id) : { totalItemsAllWishlists: 0, wishlists: [] };
+      });
+    },
+    /** One of the customer's wishlists. */
+    getWishlist(customer, wishlistId) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        checkId(wishlistId, "wishlistId");
+        yield assertOwnsWishlist(customer, wishlistId);
+        return request("GET", "/wsservice/api/wishlists", "GET wishlists", { query: { id: wishlistId } });
+      });
+    },
+    /** One page of items from one of the customer's wishlists. */
+    getWishlistItems(_0, _1) {
+      return __async(this, arguments, function* (customer, wishlistId, page = {}) {
+        checkCustomer(customer);
+        checkId(wishlistId, "wishlistId");
+        yield assertOwnsWishlist(customer, wishlistId);
+        const data = yield request("GET", "/wsservice/api/wishlist/items", "GET wishlist/items", {
+          query: { id: wishlistId, pageSize: page.pageSize, lastItemId: page.lastItemId }
+        });
+        return __spreadValues({
+          wishlistItems: Array.isArray(data == null ? void 0 : data.wishlistItems) ? data.wishlistItems : [],
+          itemCount: data == null ? void 0 : data.itemCount
+        }, (data == null ? void 0 : data.lastEvaluatedItemId) ? { lastEvaluatedItemId: data.lastEvaluatedItemId } : {});
+      });
+    },
+    /** Creates a wishlist for the customer, creating or linking their TWC record first if needed. */
+    createWishlist(customer, wishlist) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        checkId(wishlist == null ? void 0 : wishlist.name, "name");
+        const id = yield customerId(customer, true);
+        return request("POST", "/wsservice/api/wishlists", "POST wishlists", {
+          body: __spreadValues(__spreadValues({
+            customerId: id,
+            name: wishlist.name
+          }, wishlist.description !== void 0 ? { description: wishlist.description } : {}), wishlist.isPrivate !== void 0 ? { isPrivate: wishlist.isPrivate } : {})
+        });
+      });
+    },
+    renameWishlist(customer, wishlistId, name) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        checkId(wishlistId, "wishlistId");
+        checkId(name, "name");
+        yield assertOwnsWishlist(customer, wishlistId);
+        return request("PUT", "/wsservice/api/wishlists", "PUT wishlists", { body: { id: wishlistId, name } });
+      });
+    },
+    deleteWishlist(customer, wishlistId) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        checkId(wishlistId, "wishlistId");
+        yield assertOwnsWishlist(customer, wishlistId);
+        yield request("DELETE", "/wsservice/api/wishlists", "DELETE wishlists", { query: { id: wishlistId } });
+      });
+    },
+    /** Adds a product variant to one of the customer's wishlists. */
+    addItem(customer, wishlistId, item) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        checkId(wishlistId, "wishlistId");
+        checkId(item == null ? void 0 : item.productRef, "productRef");
+        checkId(item == null ? void 0 : item.variantRef, "variantRef");
+        yield assertOwnsWishlist(customer, wishlistId);
+        return request("POST", "/wsservice/api/wishlist/items", "POST wishlist/items", {
+          body: __spreadValues(__spreadValues({
+            wishlistId,
+            product: { productRef: item.productRef, selectedVariantRef: item.variantRef }
+          }, item.wishlistItemRef ? { wishlistItemRef: item.wishlistItemRef } : {}), item.attributeGroups !== void 0 ? { attributeGroups: item.attributeGroups } : {})
+        });
+      });
+    },
+    /** Changes the selected variant (e.g. size or colour) of an item in one of the customer's wishlists. */
+    changeItemVariant(customer, itemId, variantRef) {
+      return __async(this, null, function* () {
+        var _a2, _b;
+        checkCustomer(customer);
+        checkId(itemId, "itemId");
+        checkId(variantRef, "variantRef");
+        const item = yield ownedItem(customer, itemId);
+        return request("PUT", "/wsservice/api/wishlist/items", "PUT wishlist/items", {
+          body: {
+            id: item.id,
+            wishlistId: item.wishlistId,
+            product: {
+              productRef: (_a2 = item.product) == null ? void 0 : _a2.productRef,
+              // wsservice reads selectedVariantId without a null check, so it is always sent.
+              selectedVariantId: "",
+              selectedVariantRef: variantRef,
+              oldVariantRef: (_b = item.product) == null ? void 0 : _b.selectedVariantRef
+            }
+          }
+        });
+      });
+    },
+    /** Removes an item from one of the customer's wishlists. */
+    removeItem(customer, itemId) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        checkId(itemId, "itemId");
+        const item = yield ownedItem(customer, itemId);
+        yield request("DELETE", `/wsservice/api/wishlist/items/${encodeURIComponent(item.id)}`, "DELETE wishlist/items/{id}");
+      });
+    },
+    /**
+     * A shared wishlist for a share page: the list name and products only. All customer data is
+     * removed, and a private or deleted wishlist is not found.
+     */
+    getSharedWishlist(_0) {
+      return __async(this, arguments, function* (wishlistId, page = {}) {
+        checkId(wishlistId, "wishlistId");
+        const wishlist = yield request("GET", "/wsservice/api/wishlists", "GET wishlists", { query: { id: wishlistId }, allow404: true });
+        if (!wishlist || wishlist.deleted === true || wishlist.isPrivate === true)
+          throw notFound("Wishlist");
+        const data = yield request("GET", "/wsservice/api/wishlist/items", "GET wishlist/items", {
+          query: { id: wishlistId, pageSize: page.pageSize, lastItemId: page.lastItemId }
+        });
+        const items = Array.isArray(data == null ? void 0 : data.wishlistItems) ? data.wishlistItems : [];
+        return __spreadValues({
+          name: typeof wishlist.name === "string" ? wishlist.name : "",
+          items: items.map((i) => {
+            var _a2, _b, _c, _d;
+            return {
+              productRef: (_b = (_a2 = i == null ? void 0 : i.product) == null ? void 0 : _a2.productRef) != null ? _b : null,
+              variantRef: (_d = (_c = i == null ? void 0 : i.product) == null ? void 0 : _c.selectedVariantRef) != null ? _d : null
+            };
+          })
+        }, (data == null ? void 0 : data.lastEvaluatedItemId) ? { lastItemId: data.lastEvaluatedItemId } : {});
+      });
+    },
+    /**
+     * Registers a Notify Me (back in stock) or Coming Soon interest. For a logged-in customer, pass
+     * the session's email, not one from the form. Protect your sign-up endpoint against abuse.
+     */
+    registerInterest(signup) {
+      return __async(this, null, function* () {
+        checkId(signup == null ? void 0 : signup.email, "email");
+        checkId(signup == null ? void 0 : signup.variantRef, "variantRef");
+        if (signup.kind !== "notifyMe" && signup.kind !== "comingSoon") {
+          throw invalidArgument('kind must be "notifyMe" or "comingSoon".');
+        }
+        const _a2 = signup, { kind } = _a2, fields = __objRest(_a2, ["kind"]);
+        return request("POST", "/wsservice/api/wishlist/items/customerInterest", "POST wishlist/items/customerInterest", {
+          body: __spreadProps(__spreadValues({}, fields), { [kind]: true })
+        });
+      });
+    },
+    /** The customer's Notify Me / Coming Soon interests (a wishlist with items), or null if none. */
+    getInterests(customer) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        return request("GET", `/wsservice/api/wishlist/items/customerInterest/${encodeURIComponent(customer.email)}`, "GET wishlist/items/customerInterest/{email}", { allow404: true });
+      });
+    },
+    /** Cancels one of the customer's interests in a variant. */
+    cancelInterest(customer, variantRef, kind) {
+      return __async(this, null, function* () {
+        checkCustomer(customer);
+        checkId(variantRef, "variantRef");
+        if (kind !== "notifyMe" && kind !== "comingSoon")
+          throw invalidArgument('kind must be "notifyMe" or "comingSoon".');
+        const id = yield customerId(customer, false);
+        if (!id)
+          throw notFound("Interest");
+        yield request("DELETE", "/wsservice/api/wishlist/items/customerInterest", "DELETE wishlist/items/customerInterest", {
+          query: { customerId: id, variantRef, isNotifyMe: String(kind === "notifyMe") }
+        });
+      });
+    }
+  };
+}
 function resolveToken(token) {
   return __async(this, null, function* () {
     if (token)
       return token;
-    const config2 = getConfig();
-    if (!config2) {
+    {
       throw new Error(
-        "TWC SDK: No token provided and proxy auth is not configured. Either pass a token directly or call initTWC({ shopDomain }) first."
+        "TWC SDK: no token provided. Pass an access token from your TWC server API client as `token`."
       );
     }
-    if (cachedToken && Date.now() < cacheExpiry) {
-      return cachedToken;
-    }
-    if (inFlight)
-      return inFlight;
-    const proxyUrl = `https://${config2.shopDomain}/apps/twc-sdk/auth/token`;
-    const request = axios__default.default.get(proxyUrl).then(
-      (response) => {
-        var _a, _b, _c, _d;
-        inFlight = null;
-        if (!((_a = response.data) == null ? void 0 : _a.success) || !((_c = (_b = response.data) == null ? void 0 : _b.data) == null ? void 0 : _c.access_token)) {
-          throw new Error(
-            `TWC SDK: Proxy auth failed \u2014 ${((_d = response.data) == null ? void 0 : _d.message) || "unknown error"}`
-          );
-        }
-        const accessToken = response.data.data.access_token;
-        cachedToken = accessToken;
-        cacheExpiry = Date.now() + CACHE_TTL_MS;
-        return accessToken;
-      },
-      (error) => {
-        inFlight = null;
-        throw error;
-      }
-    );
-    inFlight = request;
-    return request;
   });
 }
-function invalidateToken() {
-  cachedToken = null;
-  cacheExpiry = 0;
-}
-function getCachedToken() {
-  return cachedToken;
-}
+
+// src/axios/AxiosInstance.ts
 var axiosInstance = axios__default.default.create({
   baseURL: "https://api.au-aws.thewishlist.io/services"
 });
-function authorizationOf(config2) {
-  var _a, _b, _c;
-  const header = (_c = (_a = config2.headers) == null ? void 0 : _a.Authorization) != null ? _c : (_b = config2.headers) == null ? void 0 : _b.authorization;
-  return typeof header === "string" ? header : void 0;
-}
 axiosInstance.interceptors.response.use(void 0, (error) => __async(void 0, null, function* () {
   var _a;
   const config2 = error.config;
   if (((_a = error.response) == null ? void 0 : _a.status) !== 401 || !config2 || config2._twcRetried) {
     return Promise.reject(error);
   }
-  const cachedToken2 = getCachedToken();
-  if (!cachedToken2 || authorizationOf(config2) !== `Bearer ${cachedToken2}`) {
+  {
     return Promise.reject(error);
   }
-  config2._twcRetried = true;
-  invalidateToken();
-  let freshToken;
-  try {
-    freshToken = yield resolveToken();
-  } catch (e) {
-    return Promise.reject(error);
-  }
-  config2.headers.Authorization = `Bearer ${freshToken}`;
-  return axiosInstance.request(config2);
 }));
-
-// src/wishlistService/getWishlistByID.ts
-function getWishlistByID(obj) {
-  const params = {};
-  if (obj.pageSize) {
-    params.pageSize = obj.pageSize;
-  }
-  if (obj.lastItemId) {
-    params.lastItemId = obj.lastItemId;
-  }
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.get(`/wsservice/api/wishlists/${obj.wishlistID}`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "X-TWC-Tenant": obj.tenant
-      },
-      params
-    });
-  }).then((response) => {
-    if (obj.onSuccess) {
-      obj.onSuccess(response.data);
-    }
-  }).catch((error) => {
-    if (obj.onError) {
-      obj.onError((error == null ? void 0 : error.response) || error);
-    }
-  });
-}
-
-// src/wishlistService/getWishlistByCustomerID.ts
-function getWishlistByCustomerID(obj) {
-  const params = {
-    pageSize: obj.pageSize || 10,
-    lastItemId: obj.lastItemId || ""
-  };
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.get(
-      `/wsservice/api/wishlists/customer/${obj.customerID}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        },
-        params
-      }
-    );
-  }).then((response) => {
-    if (obj.onSuccess) {
-      obj.onSuccess(response.data);
-    }
-  }).catch((error) => {
-    if (obj.onError) {
-      obj.onError((error == null ? void 0 : error.response) || error);
-    }
-  });
-}
-
-// src/wishlistService/getWishlistByCustomerRef.ts
-function getWishlistByCustomerRef(obj) {
-  const params = {
-    pageSize: obj.pageSize || 10,
-    lastItemId: obj.lastItemId || ""
-  };
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.get(
-      `/wsservice/api/wishlists/customer/${obj.customerRef}/byref`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        },
-        params
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/wishlistService/getWishlistByRef.ts
-function getWishlistByRef(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.get(
-      `/wsservice/api/wishlists/${obj.wishlistRef}/byref`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
 
 // src/wishlistService/getWishlist.ts
 function getWishlist(obj) {
@@ -312,39 +641,23 @@ function getWishlistItems(obj) {
   });
 }
 
-// src/wishlistService/updateWishlistItemByRef.ts
-function updateWishlistItemByRef(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.put(
-      `/wsservice/api/wishlist/items/ref=${obj.wishlistItemRef}`,
-      obj.updateWishlistItemBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/wishlistService/getWishlistByCustomer.ts
-function getWishlistByCustomer(obj) {
+// src/wishlistService/getWishlistsByCustomer.ts
+function getWishlistsByCustomer(obj) {
+  if (!obj.customerID && !obj.customerRef && !obj.email) {
+    obj.onError(new Error("One of customerID, customerRef or email must be defined."));
+    return;
+  }
   const params = new URLSearchParams();
   obj.customerID && params.append("customerId", obj.customerID);
   obj.customerRef && params.append("customerRef", obj.customerRef);
+  obj.email && params.append("email", obj.email);
   if (obj.pageSize)
-    params.append("pageSize", obj.pageSize);
+    params.append("pageSize", obj.pageSize.toString());
   if (obj.lastItemId)
     params.append("lastItemId", obj.lastItemId);
   resolveToken(obj.token).then((token) => {
     return axiosInstance.get(
-      `/wsservice/api/wishlists/lookup?${params.toString()}`,
+      `/wsservice/api/wishlists/byCustomer?${params.toString()}`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -419,74 +732,11 @@ function updateWishlist(obj) {
   });
 }
 
-// src/wishlistService/updateWishlistByID.ts
-function updateWishlistByID(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.put(
-      `/wsservice/api/wishlists/id=${obj.wishlistID}`,
-      obj.updateWishlistByIDBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/wishlistService/updateWishlistByRef.ts
-function updateWishlistByRef(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.put(
-      `/wsservice/api/wishlists/ref=${obj.wishlistRef}`,
-      obj.updateWishlistByIDBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
 // src/wishlistService/updateWishlistItem.ts
 function updateWishlistItem(obj) {
   resolveToken(obj.token).then((token) => {
     return axiosInstance.put(
       `/wsservice/api/wishlist/items`,
-      obj.updateWishlistItemBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/wishlistService/updateWishlistItemByID.ts
-function updateWishlistItemByID(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.put(
-      `/wsservice/api/wishlist/items/id=${obj.wishlistItemID}`,
       obj.updateWishlistItemBody,
       {
         headers: {
@@ -566,430 +816,12 @@ function deleteWishlist(obj) {
   });
 }
 
-// src/wishlistService/deleteAllWishlist.ts
-function deleteAllWishlist(obj) {
-  const params = new URLSearchParams();
-  obj.customerID && params.append("customerId", obj.customerID);
-  obj.customerRef && params.append("customerRef", obj.customerRef);
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.delete(
-      `/wsservice/api/wishlists/customer?${params.toString()}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/wishlistService/deleteWishlistByID.ts
-function deleteWishlistByID(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.delete(
-      `/wsservice/api/wishlists/${obj.wishlistID}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/wishlistService/deleteWishlistByRef.ts
-function deleteWishlistByRef(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.delete(
-      `/wsservice/api/wishlists/${obj.wishlistRef}/byref`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/wishlistService/getCustomersWithFlag.ts
-function getCustomersWithFlag(obj) {
-  const params = {};
-  if (obj.productRef) {
-    params.productRef = obj.productRef;
-  } else if (obj.variantRef) {
-    params.variantRef = obj.variantRef;
-  }
-  if (obj.notifyMe !== void 0) {
-    params.notifyMe = obj.notifyMe.toString();
-  } else if (obj.preRelease !== void 0) {
-    params.preRelease = obj.preRelease.toString();
-  }
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.get(
-      "/wsservice/api/wishlist/items/getCustomersWithFlag",
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        },
-        params
-      }
-    );
-  }).then((response) => {
-    if (obj.onSuccess) {
-      obj.onSuccess(response.data);
-    }
-  }).catch((error) => {
-    if (obj.onError) {
-      obj.onError((error == null ? void 0 : error.response) || error);
-    }
-  });
-}
-
-// src/wishlistService/resetWishlistItemFlag.ts
-function resetWishlistItemFlag(obj) {
-  const params = {};
-  if (obj.productRef) {
-    params.productRef = obj.productRef;
-  } else if (obj.variantRef) {
-    params.variantRef = obj.variantRef;
-  }
-  if (obj.notifyMe) {
-    params.notifyMe = obj.notifyMe.toString();
-  } else if (obj.preRelease) {
-    params.preRelease = obj.preRelease.toString();
-  }
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.put(
-      "/wsservice/api/wishlist/items/resetFlag",
-      {},
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        },
-        params
-      }
-    );
-  }).then((response) => {
-    if (obj.onSuccess) {
-      obj.onSuccess(response.data);
-    }
-  }).catch((error) => {
-    if (obj.onError) {
-      obj.onError((error == null ? void 0 : error.response) || error);
-    }
-  });
-}
-
 // src/wishlistService/getItemsPopularity.ts
 function getItemsPopularity(obj) {
   resolveToken(obj.token).then((token) => {
     return axiosInstance.post(
       `/wsservice/api/wishlists/itemPopularity`,
       obj.itemsPopularityBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/anonymous/identifier.ts
-var SHOPIFY_ANALYTICS_COOKIE = "_shopify_y";
-var TWC_ANONYMOUS_COOKIE = "twc_awid";
-var ONE_YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
-function readCookie(name) {
-  if (typeof document === "undefined")
-    return null;
-  let jar;
-  try {
-    jar = document.cookie || "";
-  } catch (e) {
-    return null;
-  }
-  const prefix = `${name}=`;
-  for (const entry of jar.split(";")) {
-    const candidate = entry.trim();
-    if (!candidate.startsWith(prefix))
-      continue;
-    const raw = candidate.slice(prefix.length);
-    if (!raw)
-      return null;
-    try {
-      return decodeURIComponent(raw) || null;
-    } catch (e) {
-      return raw;
-    }
-  }
-  return null;
-}
-function writeCookie(name, value) {
-  if (typeof document === "undefined")
-    return;
-  const isSecureContext = typeof location !== "undefined" && location.protocol === "https:";
-  try {
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${ONE_YEAR_IN_SECONDS}; SameSite=Lax` + (isSecureContext ? `; Secure` : "");
-  } catch (e) {
-  }
-}
-function toHex(value, width) {
-  let hex = value.toString(16);
-  while (hex.length < width)
-    hex = `0${hex}`;
-  return hex;
-}
-function mintIdentifier() {
-  const webCrypto = typeof globalThis !== "undefined" ? globalThis.crypto : void 0;
-  if (typeof (webCrypto == null ? void 0 : webCrypto.randomUUID) === "function") {
-    return webCrypto.randomUUID();
-  }
-  if (typeof (webCrypto == null ? void 0 : webCrypto.getRandomValues) === "function") {
-    const bytes = new Uint8Array(16);
-    webCrypto.getRandomValues(bytes);
-    bytes[6] = bytes[6] & 15 | 64;
-    bytes[8] = bytes[8] & 63 | 128;
-    const hex = [];
-    for (let i = 0; i < bytes.length; i++) {
-      hex.push(toHex(bytes[i], 2));
-    }
-    return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
-  }
-  const chunk = (length) => {
-    let out = "";
-    while (out.length < length) {
-      out += toHex(Math.floor(Math.random() * 65536), 4);
-    }
-    return out.slice(0, length);
-  };
-  return `${chunk(8)}-${chunk(4)}-4${chunk(3)}-${chunk(4)}-${chunk(12)}`;
-}
-function resolveAnonymousIdentifier() {
-  const shopifyAnalyticsId = readCookie(SHOPIFY_ANALYTICS_COOKIE);
-  if (shopifyAnalyticsId)
-    return shopifyAnalyticsId;
-  const existing = readCookie(TWC_ANONYMOUS_COOKIE);
-  if (existing)
-    return existing;
-  const minted = mintIdentifier();
-  writeCookie(TWC_ANONYMOUS_COOKIE, minted);
-  return readCookie(TWC_ANONYMOUS_COOKIE) ? minted : null;
-}
-
-// src/anonymous/anonymousState.ts
-var WISHLIST_ID_KEY = "twc_anonymous_wishlist_id";
-var MERGED_KEY = "twc_anonymous_wishlist_merged";
-var inMemoryWishlistId = null;
-var inMemoryMerged = false;
-function localStore() {
-  try {
-    return typeof localStorage !== "undefined" ? localStorage : null;
-  } catch (e) {
-    return null;
-  }
-}
-function sessionStore() {
-  try {
-    return typeof sessionStorage !== "undefined" ? sessionStorage : null;
-  } catch (e) {
-    return null;
-  }
-}
-function getAnonymousWishlistId() {
-  var _a;
-  try {
-    const stored = (_a = localStore()) == null ? void 0 : _a.getItem(WISHLIST_ID_KEY);
-    if (stored)
-      return stored;
-  } catch (e) {
-  }
-  return inMemoryWishlistId;
-}
-function setAnonymousWishlistId(id) {
-  var _a;
-  inMemoryWishlistId = id;
-  try {
-    (_a = localStore()) == null ? void 0 : _a.setItem(WISHLIST_ID_KEY, id);
-  } catch (e) {
-  }
-}
-function clearAnonymousWishlistId() {
-  var _a;
-  inMemoryWishlistId = null;
-  try {
-    (_a = localStore()) == null ? void 0 : _a.removeItem(WISHLIST_ID_KEY);
-  } catch (e) {
-  }
-}
-function hasMergedThisSession() {
-  var _a;
-  try {
-    if (((_a = sessionStore()) == null ? void 0 : _a.getItem(MERGED_KEY)) === "true")
-      return true;
-  } catch (e) {
-  }
-  return inMemoryMerged;
-}
-function markMergedThisSession() {
-  var _a;
-  inMemoryMerged = true;
-  try {
-    (_a = sessionStore()) == null ? void 0 : _a.setItem(MERGED_KEY, "true");
-  } catch (e) {
-  }
-}
-function resetAnonymousWishlistState() {
-  var _a;
-  clearAnonymousWishlistId();
-  inMemoryMerged = false;
-  try {
-    (_a = sessionStore()) == null ? void 0 : _a.removeItem(MERGED_KEY);
-  } catch (e) {
-  }
-}
-
-// src/wishlistService/getOrCreateAnonymous.ts
-function getOrCreateAnonymous(obj) {
-  if (!isAnonymousWishlistEnabled()) {
-    if (obj.onSuccess)
-      obj.onSuccess(null);
-    return;
-  }
-  const onlineSessionID = resolveAnonymousIdentifier();
-  if (!onlineSessionID) {
-    if (obj.onSuccess)
-      obj.onSuccess(null);
-    return;
-  }
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.post(`/wsservice/api/wishlists/anonymous`, void 0, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "X-TWC-Tenant": obj.tenant
-      },
-      params: { onlineSessionID }
-    });
-  }).then((response) => {
-    var _a;
-    if ((_a = response.data) == null ? void 0 : _a.id) {
-      setAnonymousWishlistId(response.data.id);
-    }
-    if (obj.onSuccess) {
-      obj.onSuccess(response.data);
-    }
-  }).catch((error) => {
-    if (obj.onError) {
-      obj.onError((error == null ? void 0 : error.response) || error);
-    }
-  });
-}
-
-// src/wishlistService/mergeOnLogin.ts
-var mergeInFlight = false;
-function mergeOnLogin(obj) {
-  const noop = () => {
-    if (obj.onSuccess)
-      obj.onSuccess(null);
-  };
-  if (!isAnonymousWishlistEnabled() || hasMergedThisSession() || mergeInFlight) {
-    noop();
-    return;
-  }
-  const anonymousWishlistId = obj.anonymousWishlistId || getAnonymousWishlistId();
-  if (!anonymousWishlistId || !obj.customerEmail) {
-    noop();
-    return;
-  }
-  const mergeWishlistBody = {
-    anonymousWishlistId,
-    customerEmail: obj.customerEmail
-  };
-  const onlineSessionID = resolveAnonymousIdentifier();
-  if (onlineSessionID)
-    mergeWishlistBody.onlineSessionID = onlineSessionID;
-  if (obj.customerRef)
-    mergeWishlistBody.customerRef = obj.customerRef;
-  if (obj.wishlistRef)
-    mergeWishlistBody.wishlistRef = obj.wishlistRef;
-  if (obj.wishlistName)
-    mergeWishlistBody.wishlistName = obj.wishlistName;
-  mergeInFlight = true;
-  const done = () => {
-    mergeInFlight = false;
-  };
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.post(
-      `/wsservice/api/wishlists/merge`,
-      mergeWishlistBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    done();
-    markMergedThisSession();
-    clearAnonymousWishlistId();
-    if (obj.onSuccess) {
-      obj.onSuccess(response.data || null);
-    }
-  }).catch((error) => {
-    var _a;
-    done();
-    if (((_a = error == null ? void 0 : error.response) == null ? void 0 : _a.status) === 404) {
-      markMergedThisSession();
-      noop();
-      return;
-    }
-    if (obj.onError) {
-      obj.onError((error == null ? void 0 : error.response) || error);
-    }
-  });
-}
-
-// src/customerService/customerLookup.ts
-function customerLookup(obj) {
-  const params = new URLSearchParams();
-  obj.email && params.append("email", obj.email);
-  obj.firstName && params.append("firstName", obj.firstName);
-  obj.lastName && params.append("lastName", obj.lastName);
-  obj.mobile && params.append("mobile", obj.mobile);
-  obj.phone && params.append("phone", obj.phone);
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.get(
-      `/customerservice/api/v2/customers/search?${params.toString()}`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -1108,132 +940,23 @@ function updateCustomer(obj) {
   });
 }
 
-// src/customerService/updateCustomerByRef.ts
-function updateCustomerByRef(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.put(
-      `/customerservice/api/v2/customers/customerRef=${obj.customerRef}`,
-      obj.updateCustomerBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/customerService/deleteCustomer.ts
-function deleteCustomer(obj) {
-  const params = new URLSearchParams();
-  obj.customerID && params.append("id", obj.customerID);
-  obj.customerRef && params.append("customerRef", obj.customerRef);
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.delete(
-      `/customerservice/api/v2/customers?${params.toString()}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/customerService/deleteCustomerByID.ts
-function deleteCustomerByID(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.delete(
-      `/customerservice/api/v2/customers/${obj.customerID}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-// src/customerService/createBulkCustomers.ts
-function createBulkCustomers(obj) {
-  resolveToken(obj.token).then((token) => {
-    return axiosInstance.post(
-      `/customerservice/api/v2/upload-customers/`,
-      obj.createBulkCustomerBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-TWC-Tenant": obj.tenant
-        }
-      }
-    );
-  }).then((response) => {
-    obj.onSuccess(response.data);
-  }).catch((error) => {
-    obj.onError((error == null ? void 0 : error.response) || error);
-  });
-}
-
-exports.createBulkCustomers = createBulkCustomers;
+exports.TWCError = TWCError;
 exports.createCustomer = createCustomer;
+exports.createTWCClient = createTWCClient;
 exports.createWishlist = createWishlist;
 exports.createWishlistItem = createWishlistItem;
-exports.customerLookup = customerLookup;
-exports.deleteAllWishlist = deleteAllWishlist;
-exports.deleteCustomer = deleteCustomer;
-exports.deleteCustomerByID = deleteCustomerByID;
 exports.deleteWishlist = deleteWishlist;
-exports.deleteWishlistByID = deleteWishlistByID;
-exports.deleteWishlistByRef = deleteWishlistByRef;
 exports.deleteWishlistItemByID = deleteWishlistItemByID;
 exports.deleteWishlistItemByRef = deleteWishlistItemByRef;
-exports.getAnonymousWishlistId = getAnonymousWishlistId;
 exports.getCustomerByID = getCustomerByID;
 exports.getCustomerByRef = getCustomerByRef;
-exports.getCustomersWithFlag = getCustomersWithFlag;
 exports.getItemsPopularity = getItemsPopularity;
-exports.getOrCreateAnonymous = getOrCreateAnonymous;
 exports.getWishlist = getWishlist;
-exports.getWishlistByCustomer = getWishlistByCustomer;
-exports.getWishlistByCustomerID = getWishlistByCustomerID;
-exports.getWishlistByCustomerRef = getWishlistByCustomerRef;
-exports.getWishlistByID = getWishlistByID;
-exports.getWishlistByRef = getWishlistByRef;
 exports.getWishlistItemByID = getWishlistItemByID;
 exports.getWishlistItemByRef = getWishlistItemByRef;
 exports.getWishlistItems = getWishlistItems;
-exports.initTWC = initTWC;
-exports.invalidateToken = invalidateToken;
-exports.mergeOnLogin = mergeOnLogin;
-exports.resetAnonymousWishlistState = resetAnonymousWishlistState;
-exports.resetWishlistItemFlag = resetWishlistItemFlag;
-exports.resolveAnonymousIdentifier = resolveAnonymousIdentifier;
-exports.resolveToken = resolveToken;
+exports.getWishlistsByCustomer = getWishlistsByCustomer;
 exports.updateCustomer = updateCustomer;
 exports.updateCustomerByID = updateCustomerByID;
-exports.updateCustomerByRef = updateCustomerByRef;
 exports.updateWishlist = updateWishlist;
-exports.updateWishlistByID = updateWishlistByID;
-exports.updateWishlistByRef = updateWishlistByRef;
 exports.updateWishlistItem = updateWishlistItem;
-exports.updateWishlistItemByID = updateWishlistItemByID;
-exports.updateWishlistItemByRef = updateWishlistItemByRef;
