@@ -4,232 +4,117 @@
 
 ## Table of contents
 
+### Classes
+
+- [TWCError](classes/TWCError.md)
+
 ### Interfaces
 
-- [TWCConfig](interfaces/TWCConfig.md)
+- [Customer](interfaces/Customer.md)
+- [CustomerWishlists](interfaces/CustomerWishlists.md)
+- [InterestSignup](interfaces/InterestSignup.md)
+- [SharedWishlist](interfaces/SharedWishlist.md)
+- [TWCClientOptions](interfaces/TWCClientOptions.md)
+- [WishlistItemsPage](interfaces/WishlistItemsPage.md)
+- [WishlistSummary](interfaces/WishlistSummary.md)
+
+### Type Aliases
+
+- [InterestKind](modules.md#interestkind)
+- [TWCClient](modules.md#twcclient)
 
 ### Functions
 
-- [initTWC](modules.md#inittwc)
-- [invalidateToken](modules.md#invalidatetoken)
-- [resolveToken](modules.md#resolvetoken)
-
-### anonymousWishlist
-
-- [getAnonymousWishlistId](modules.md#getanonymouswishlistid)
-- [resetAnonymousWishlistState](modules.md#resetanonymouswishliststate)
-- [resolveAnonymousIdentifier](modules.md#resolveanonymousidentifier)
+- [createTWCClient](modules.md#createtwcclient)
 
 ### customerService
 
-- [createBulkCustomers](modules.md#createbulkcustomers)
 - [createCustomer](modules.md#createcustomer)
-- [customerLookup](modules.md#customerlookup)
-- [deleteCustomer](modules.md#deletecustomer)
-- [deleteCustomerByID](modules.md#deletecustomerbyid)
 - [getCustomerByID](modules.md#getcustomerbyid)
 - [getCustomerByRef](modules.md#getcustomerbyref)
 - [updateCustomer](modules.md#updatecustomer)
 - [updateCustomerByID](modules.md#updatecustomerbyid)
-- [updateCustomerByRef](modules.md#updatecustomerbyref)
 
 ### wishlistService
 
 - [createWishlist](modules.md#createwishlist)
 - [createWishlistItem](modules.md#createwishlistitem)
-- [deleteAllWishlist](modules.md#deleteallwishlist)
 - [deleteWishlist](modules.md#deletewishlist)
-- [deleteWishlistByID](modules.md#deletewishlistbyid)
-- [deleteWishlistByRef](modules.md#deletewishlistbyref)
 - [deleteWishlistItemByID](modules.md#deletewishlistitembyid)
 - [deleteWishlistItemByRef](modules.md#deletewishlistitembyref)
-- [getCustomersWithFlag](modules.md#getcustomerswithflag)
 - [getItemsPopularity](modules.md#getitemspopularity)
-- [getOrCreateAnonymous](modules.md#getorcreateanonymous)
 - [getWishlist](modules.md#getwishlist)
-- [getWishlistByCustomer](modules.md#getwishlistbycustomer)
-- [getWishlistByCustomerID](modules.md#getwishlistbycustomerid)
-- [getWishlistByCustomerRef](modules.md#getwishlistbycustomerref)
-- [getWishlistByID](modules.md#getwishlistbyid)
-- [getWishlistByRef](modules.md#getwishlistbyref)
 - [getWishlistItemByID](modules.md#getwishlistitembyid)
 - [getWishlistItemByRef](modules.md#getwishlistitembyref)
 - [getWishlistItems](modules.md#getwishlistitems)
-- [mergeOnLogin](modules.md#mergeonlogin)
-- [resetWishlistItemFlag](modules.md#resetwishlistitemflag)
+- [getWishlistsByCustomer](modules.md#getwishlistsbycustomer)
 - [updateWishlist](modules.md#updatewishlist)
-- [updateWishlistByID](modules.md#updatewishlistbyid)
-- [updateWishlistByRef](modules.md#updatewishlistbyref)
 - [updateWishlistItem](modules.md#updatewishlistitem)
-- [updateWishlistItemByID](modules.md#updatewishlistitembyid)
-- [updateWishlistItemByRef](modules.md#updatewishlistitembyref)
+
+## Type Aliases
+
+### InterestKind
+
+Ƭ **InterestKind**: ``"notifyMe"`` \| ``"comingSoon"``
+
+#### Defined in
+
+[src/client/createTWCClient.ts:63](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/client/createTWCClient.ts#L63)
+
+___
+
+### TWCClient
+
+Ƭ **TWCClient**: `ReturnType`\<typeof [`createTWCClient`](modules.md#createtwcclient)\>
+
+#### Defined in
+
+[src/client/createTWCClient.ts:434](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/client/createTWCClient.ts#L434)
 
 ## Functions
 
-### initTWC
+### createTWCClient
 
-▸ **initTWC**(`cfg`): `void`
+▸ **createTWCClient**(`options`): `Object`
 
-Initializes the TWC SDK for Shopify proxy-based authentication.
-Call this once (e.g. on page load) before using any SDK functions without a token.
+Creates a TWC client for server-side code. It requests and refreshes its own access token
+and offers operations scoped to one shopper: every operation on a wishlist or item first
+checks it belongs to the customer you pass, and returns not-found if it doesn't.
 
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `cfg` | [`TWCConfig`](interfaces/TWCConfig.md) | Configuration object. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-config.ts:23
-
-___
-
-### invalidateToken
-
-▸ **invalidateToken**(): `void`
-
-Drops the cached proxy token so the next [resolveToken](modules.md#resolvetoken) call re-requests it.
-
-No refresh-token flow exists, so expiry is handled by re-requesting: the axios
-response interceptor calls this on a 401 and retries the failed call once.
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-auth/proxyAuth.ts:75
-
-___
-
-### resolveToken
-
-▸ **resolveToken**(`token?`): `Promise`\<`string`\>
-
-Resolves an authentication token for TWC API calls.
-
-- If a token is provided directly, it is returned as-is (zero overhead).
-- If no token is provided, fetches one from the Shopify App Proxy
-  configured via [initTWC](modules.md#inittwc). The proxy token is cached client-side
-  to avoid repeated network calls.
-
-Concurrent calls that miss the cache share a single proxy request.
+Throws if created in a browser: the client holds your server credentials.
 
 #### Parameters
 
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `token?` | `string` | An explicit bearer token. When supplied, proxy auth is bypassed. |
+| Name | Type |
+| :------ | :------ |
+| `options` | [`TWCClientOptions`](interfaces/TWCClientOptions.md) |
 
 #### Returns
 
-`Promise`\<`string`\>
+`Object`
 
-A promise that resolves to a valid access token string.
-
-**`Throws`**
-
-If no token is provided and `initTWC` has not been called.
-
-**`Throws`**
-
-If the proxy request fails or returns an unsuccessful response.
-
-#### Defined in
-
-auth/proxyAuth.ts:24
-
-## anonymousWishlist
-
-### getAnonymousWishlistId
-
-▸ **getAnonymousWishlistId**(): `string` \| ``null``
-
-Returns the persisted anonymous wishlist id, or `null` if none is stored.
-
-#### Returns
-
-`string` \| ``null``
+| Name | Type |
+| :------ | :------ |
+| `ensureCustomer` | (`customer`: [`Customer`](interfaces/Customer.md), `details`: \{ `firstName?`: `string` ; `lastName?`: `string`  }) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `addItem` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`, `item`: \{ `attributeGroups?`: `unknown` ; `productRef`: `string` ; `variantRef`: `string` ; `wishlistItemRef?`: `string`  }) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `cancelInterest` | (`customer`: [`Customer`](interfaces/Customer.md), `variantRef`: `string`, `kind`: [`InterestKind`](modules.md#interestkind)) => `Promise`\<`void`\> |
+| `changeItemVariant` | (`customer`: [`Customer`](interfaces/Customer.md), `itemId`: `string`, `variantRef`: `string`) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `createWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlist`: \{ `description?`: `string` ; `isPrivate?`: `boolean` ; `name`: `string`  }) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `deleteWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`) => `Promise`\<`void`\> |
+| `getInterests` | (`customer`: [`Customer`](interfaces/Customer.md)) => `Promise`\<``null`` \| `Record`\<`string`, `any`\>\> |
+| `getSharedWishlist` | (`wishlistId`: `string`, `page`: \{ `lastItemId?`: `string` ; `pageSize?`: `number`  }) => `Promise`\<[`SharedWishlist`](interfaces/SharedWishlist.md)\> |
+| `getWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`) => `Promise`\<`Record`\<`string`, `any`\>\> |
+| `getWishlistItems` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`, `page`: \{ `lastItemId?`: `string` ; `pageSize?`: `number`  }) => `Promise`\<[`WishlistItemsPage`](interfaces/WishlistItemsPage.md)\> |
+| `getWishlists` | (`customer`: [`Customer`](interfaces/Customer.md)) => `Promise`\<[`CustomerWishlists`](interfaces/CustomerWishlists.md)\> |
+| `registerInterest` | (`signup`: [`InterestSignup`](interfaces/InterestSignup.md)) => `Promise`\<`unknown`\> |
+| `removeItem` | (`customer`: [`Customer`](interfaces/Customer.md), `itemId`: `string`) => `Promise`\<`void`\> |
+| `renameWishlist` | (`customer`: [`Customer`](interfaces/Customer.md), `wishlistId`: `string`, `name`: `string`) => `Promise`\<`Record`\<`string`, `any`\>\> |
 
 #### Defined in
 
-anonymous/anonymousState.ts:43
-
-___
-
-### resetAnonymousWishlistState
-
-▸ **resetAnonymousWishlistState**(): `void`
-
-Clears all anonymous wishlist state: the stored `anonymousWishlistId` and the
-merge guard.
-
-Call this on logout, or when a different customer signs in during the same
-session, so a subsequent guest list can be created and merged again.
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-anonymous/anonymousState.ts:104
-
-___
-
-### resolveAnonymousIdentifier
-
-▸ **resolveAnonymousIdentifier**(): `string` \| ``null``
-
-Resolves the durable anonymous identifier for this browser, minting and
-persisting one if needed.
-
-#### Returns
-
-`string` \| ``null``
-
-The identifier to send as `onlineSessionID`, or `null` when no
-  identifier is available and none can be persisted (e.g. cookies blocked).
-  Callers must treat `null` as a silent no-op.
-
-#### Defined in
-
-anonymous/identifier.ts:118
+[src/client/createTWCClient.ts:96](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/client/createTWCClient.ts#L96)
 
 ## customerService
-
-### createBulkCustomers
-
-▸ **createBulkCustomers**(`obj`): `void`
-
-Creates bulk customers.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.createBulkCustomerBody` | \{ `[key: string]`: `any`;  }[] | The body of the request containing the customer data. See https://the-wishlist-co.github.io/docs/customersvcApi.html#create-multiple-customers for information on the fields. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful response. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-customerService/createBulkCustomers.ts:16
-
-___
 
 ### createCustomer
 
@@ -246,7 +131,7 @@ Creates a new customer.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 
 #### Returns
 
@@ -254,93 +139,7 @@ Creates a new customer.
 
 #### Defined in
 
-customerService/createCustomer.ts:15
-
-___
-
-### customerLookup
-
-▸ **customerLookup**(`obj`): `void`
-
-Returns a list of customers with a matching email/mobile/phone/firstName/lastName.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.email?` | `string` | The email of the customer. |
-| `obj.firstName?` | `string` | The first name of the customer. |
-| `obj.lastName?` | `string` | The last name of the customer. |
-| `obj.mobile?` | `string` | The mobile number of the customer. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on lookup error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful lookup. |
-| `obj.phone?` | `string` | The phone number of the customer. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-customerService/customerLookup.ts:19
-
-___
-
-### deleteCustomer
-
-▸ **deleteCustomer**(`obj`): `void`
-
-Deletes a customer.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.customerID?` | `string` | The ID of the customer to delete (either customerID or customerRef must be defined). |
-| `obj.customerRef?` | `string` | The reference of the customer to delete (either customerID or customerRef must be defined). |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
-| `obj.tenant` | `string` | The tenant ID. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-customerService/deleteCustomer.ts:17
-
-___
-
-### deleteCustomerByID
-
-▸ **deleteCustomerByID**(`obj`): `void`
-
-Deletes a customer by their ID.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.customerID` | `string` | The ID of the customer to delete. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during deletion. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the deletion is successful. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-customerService/deleteCustomerByID.ts:16
+[src/customerService/createCustomer.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/createCustomer.ts#L15)
 
 ___
 
@@ -359,7 +158,7 @@ Retrieves customer information by ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to handle any errors. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 
 #### Returns
 
@@ -367,7 +166,7 @@ Retrieves customer information by ID.
 
 #### Defined in
 
-customerService/getCustomerByID.ts:15
+[src/customerService/getCustomerByID.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/getCustomerByID.ts#L15)
 
 ___
 
@@ -386,7 +185,7 @@ Retrieves customer information by customer reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to handle any errors. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 
 #### Returns
 
@@ -394,7 +193,7 @@ Retrieves customer information by customer reference.
 
 #### Defined in
 
-customerService/getCusotmerByRef.ts:15
+[src/customerService/getCusotmerByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/getCusotmerByRef.ts#L15)
 
 ___
 
@@ -412,7 +211,7 @@ Updates a customer using the provided data.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be executed when an error occurs during the request. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be executed when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier for the request. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.updateCustomerBody` | `Object` | The data to be sent in the request body for updating the customer. See https://the-wishlist-co.github.io/docs/customersvcApi.html#update for information on the fields. |
 
 #### Returns
@@ -421,7 +220,7 @@ Updates a customer using the provided data.
 
 #### Defined in
 
-customerService/updateCustomer.ts:17
+[src/customerService/updateCustomer.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/updateCustomer.ts#L17)
 
 ___
 
@@ -440,7 +239,7 @@ Updates a customer by their ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant ID. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.updateCustomerBody` | `Object` | The updated customer data. See https://the-wishlist-co.github.io/docs/customersvcApi.html#update for information on the fields. |
 
 #### Returns
@@ -449,35 +248,7 @@ Updates a customer by their ID.
 
 #### Defined in
 
-customerService/updateCustomerByID.ts:17
-
-___
-
-### updateCustomerByRef
-
-▸ **updateCustomerByRef**(`obj`): `void`
-
-Updates a customer by reference.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.customerRef` | `string` | The reference of the customer to update. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.updateCustomerBody` | `Object` | The updated customer data. See https://the-wishlist-co.github.io/docs/customersvcApi.html#update for information on the fields. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-customerService/updateCustomerByRef.ts:17
+[src/customerService/updateCustomerByID.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/customerService/updateCustomerByID.ts#L17)
 
 ## wishlistService
 
@@ -496,7 +267,7 @@ Creates a new wishlist.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful creation. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 
 #### Returns
 
@@ -504,7 +275,7 @@ Creates a new wishlist.
 
 #### Defined in
 
-wishlistService/createWishlist.ts:15
+[src/wishlistService/createWishlist.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/createWishlist.ts#L15)
 
 ___
 
@@ -523,7 +294,7 @@ Creates a wishlist item.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error during the creation of the wishlist item. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful creation of the wishlist item. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 
 #### Returns
 
@@ -531,35 +302,7 @@ Creates a wishlist item.
 
 #### Defined in
 
-wishlistService/createWishlistItem.ts:15
-
-___
-
-### deleteAllWishlist
-
-▸ **deleteAllWishlist**(`obj`): `void`
-
-Deletes all wishlists for a customer.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.customerID?` | `string` | The ID of the customer (either customerID or customerRef must be defined). |
-| `obj.customerRef?` | `string` | The reference of the customer (either customerID or customerRef must be defined). |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/deleteAllWishlist.ts:16
+[src/wishlistService/createWishlistItem.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/createWishlistItem.ts#L15)
 
 ___
 
@@ -577,7 +320,7 @@ Deletes a wishlist by either ID or Ref.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during deletion. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the deletion is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.wishlistID?` | `string` | The ID of the wishlist to delete (either wishlistID or wishlistRef must be defined). |
 | `obj.wishlistRef?` | `string` | The reference of the wishlist to delete (either wishlistID or wishlistRef must be defined). |
 
@@ -587,61 +330,7 @@ Deletes a wishlist by either ID or Ref.
 
 #### Defined in
 
-wishlistService/deleteWishlist.ts:17
-
-___
-
-### deleteWishlistByID
-
-▸ **deleteWishlistByID**(`obj`): `void`
-
-Deletes a wishlist by ID.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during deletion. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the deletion is successful. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.wishlistID` | `string` | The ID of the wishlist to delete. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/deleteWishlistByID.ts:15
-
-___
-
-### deleteWishlistByRef
-
-▸ **deleteWishlistByRef**(`obj`): `void`
-
-Deletes a wishlist by its reference.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the deletion. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the wishlist is successfully deleted. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.wishlistRef` | `string` | The reference of the wishlist to delete. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/deleteWishlistByRef.ts:16
+[src/wishlistService/deleteWishlist.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/deleteWishlist.ts#L17)
 
 ___
 
@@ -659,7 +348,7 @@ Deletes a wishlist item by ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
 | `obj.tenant` | `string` | The tenant. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.wishlistItemID` | `string` | The ID of the wishlist item to delete. |
 
 #### Returns
@@ -668,7 +357,7 @@ Deletes a wishlist item by ID.
 
 #### Defined in
 
-wishlistService/deleteWishlistItemByID.ts:16
+[src/wishlistService/deleteWishlistItemByID.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/deleteWishlistItemByID.ts#L16)
 
 ___
 
@@ -686,7 +375,7 @@ Deletes a wishlist item by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful deletion. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.wishlistItemRef` | `string` | The reference of the wishlist item to delete. |
 
 #### Returns
@@ -695,38 +384,7 @@ Deletes a wishlist item by its reference.
 
 #### Defined in
 
-wishlistService/deleteWishlistItemByRef.ts:15
-
-___
-
-### getCustomersWithFlag
-
-▸ **getCustomersWithFlag**(`obj`): `void`
-
-Retrieves the wishlist customers which are enabled for notifyMe or preRelease.
-If the customers do not exist, this method returns an empty list.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.notifyMe?` | `boolean` | A boolean indicating whether to retrieve customers with notifyMe enabled (either notifyMe or preRelease must be defined). |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called if an error occurs during retrieval. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful retrieval of customers. |
-| `obj.preRelease?` | `boolean` | A boolean indicating whether to retrieve customers with preRelease enabled (either notifyMe or preRelease must be defined). |
-| `obj.productRef?` | `string` | The product reference to filter the customers by (either productRef or variantRef must be defined). |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.variantRef?` | `string` | The variant reference to filter the customers by (either productRef or variantRef must be defined). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/getCustomersWithFlag.ts:24
+[src/wishlistService/deleteWishlistItemByRef.ts:15](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/deleteWishlistItemByRef.ts#L15)
 
 ___
 
@@ -745,7 +403,7 @@ Show a count of the number of times an item has been wishlisted.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the update. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the update is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 
 #### Returns
 
@@ -753,49 +411,7 @@ Show a count of the number of times an item has been wishlisted.
 
 #### Defined in
 
-wishlistService/getItemsPopularity.ts:18
-
-___
-
-### getOrCreateAnonymous
-
-▸ **getOrCreateAnonymous**(`obj`): `void`
-
-Gets the guest (anonymous) wishlist for this browser, creating it if it does not
-exist yet.
-
-The SDK resolves a durable identifier itself (`_shopify_y`, else `twc_awid`,
-minting one if needed) and sends it as `onlineSessionID`. Integrators must never
-construct or pass an identifier.
-
-`POST /wsservice/api/wishlists/anonymous` is create-or-return, so this is safe to
-call on every logged-out page load and needs no separate GET. The returned
-`WishlistDto.id` is persisted as the `anonymousWishlistId` that
-[mergeOnLogin](modules.md#mergeonlogin) needs.
-
-Call this on logged-out pages only — it creates an anonymous customer and
-wishlist as a side effect.
-
-Silent no-op (invokes `onSuccess(null)`, never `onError`) when the tenant feature
-flag is off, or when no durable identifier is available (e.g. cookies blocked).
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | Called with the `WishlistDto`, or with `null` when the call was a no-op. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/getOrCreateAnonymous.ts:33
+[src/wishlistService/getItemsPopularity.ts:18](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getItemsPopularity.ts#L18)
 
 ___
 
@@ -815,7 +431,7 @@ Retrieves the wishlist data based on the provided parameters.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
 | `obj.pageSize?` | `string` | The number of items per page to retrieve. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.wishlistID?` | `string` | The ID of the wishlist to retrieve (either wishlistID or wishlistRef must be defined). |
 | `obj.wishlistRef?` | `string` | The reference of the wishlist to retrieve (either wishlistID or wishlistRef must be defined). |
 
@@ -825,151 +441,7 @@ Retrieves the wishlist data based on the provided parameters.
 
 #### Defined in
 
-wishlistService/getWishlist.ts:22
-
-___
-
-### getWishlistByCustomer
-
-▸ **getWishlistByCustomer**(`obj`): `void`
-
-Retrieves the wishlist for a customer.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.customerID?` | `string` | The ID of the customer (either customerID or customerRef must be defined). |
-| `obj.customerRef?` | `string` | The reference of the customer (either customerID or customerRef must be defined). |
-| `obj.lastItemId?` | `string` | The ID of the last item retrieved. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to handle an error response. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle a successful response. |
-| `obj.pageSize?` | `string` | The number of items to retrieve per page. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/getWishlistByCustomer.ts:20
-
-___
-
-### getWishlistByCustomerID
-
-▸ **getWishlistByCustomerID**(`obj`): `void`
-
-Retrieves the wishlist for a specific customer ID.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.customerID` | `any` | The ID of the customer. |
-| `obj.lastItemId?` | `string` | The ID of the last item retrieved. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to handle any errors. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
-| `obj.pageSize?` | `number` | The number of items to retrieve per page (default: 10). |
-| `obj.tenant` | `string` | The tenant ID. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/getWishlistByCustomerID.ts:17
-
-___
-
-### getWishlistByCustomerRef
-
-▸ **getWishlistByCustomerRef**(`obj`): `void`
-
-Retrieves the wishlist for a customer based on the customer reference.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.customerRef` | `string` | The customer reference. |
-| `obj.lastItemId?` | `string` | The ID of the last item retrieved. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to handle an error response. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle a successful response. |
-| `obj.pageSize?` | `number` | The number of items to retrieve per page (default: 10). |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/getWishlistByCustomerRef.ts:17
-
-___
-
-### getWishlistByID
-
-▸ **getWishlistByID**(`obj`): `void`
-
-Retrieves a wishlist by its ID.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.lastItemId?` | `string` | The ID of the last item. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to handle the error response. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle the successful response. |
-| `obj.pageSize?` | `number` | The number of items per page. |
-| `obj.tenant` | `string` | The tenant. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.wishlistID` | `string` | The ID of the wishlist. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/getWishlistByID.ts:17
-
-___
-
-### getWishlistByRef
-
-▸ **getWishlistByRef**(`obj`): `void`
-
-Retrieves a wishlist by its reference.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the retrieval. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the wishlist is successfully retrieved. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.wishlistRef` | `string` | The reference of the wishlist to retrieve. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/getWishlistByRef.ts:15
+[src/wishlistService/getWishlist.ts:22](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlist.ts#L22)
 
 ___
 
@@ -987,7 +459,7 @@ Retrieves a wishlist item by its ID.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.wishlistItemID` | `string` | The ID of the wishlist item to retrieve. |
 
 #### Returns
@@ -996,7 +468,7 @@ Retrieves a wishlist item by its ID.
 
 #### Defined in
 
-wishlistService/getWishlistItemByID.ts:17
+[src/wishlistService/getWishlistItemByID.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistItemByID.ts#L17)
 
 ___
 
@@ -1014,7 +486,7 @@ Retrieves a wishlist item by its reference.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the request is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.wishlistItemRef` | `string` | The reference of the wishlist item to retrieve. |
 
 #### Returns
@@ -1023,7 +495,7 @@ Retrieves a wishlist item by its reference.
 
 #### Defined in
 
-wishlistService/getWishlistItemByRef.ts:16
+[src/wishlistService/getWishlistItemByRef.ts:16](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistItemByRef.ts#L16)
 
 ___
 
@@ -1043,9 +515,9 @@ Retrieves wishlist items based on the provided parameters.
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle successful response. |
 | `obj.pageSize?` | `string` | The number of items to retrieve per page. |
 | `obj.tenant` | `string` | The tenant information. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.wishlistID` | `string` | The ID of the wishlist (either wishlistID or wishlistRef must be defined). |
-| `obj.wishlistRef` | `string` | The reference of the wishlist (either wishlistID or wishlistRef must be defined). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
+| `obj.wishlistID?` | `string` | The ID of the wishlist (either wishlistID or wishlistRef must be defined). |
+| `obj.wishlistRef?` | `string` | The reference of the wishlist (either wishlistID or wishlistRef must be defined). |
 
 #### Returns
 
@@ -1053,42 +525,32 @@ Retrieves wishlist items based on the provided parameters.
 
 #### Defined in
 
-wishlistService/getWishlistItems.ts:21
+[src/wishlistService/getWishlistItems.ts:21](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistItems.ts#L21)
 
 ___
 
-### mergeOnLogin
+### getWishlistsByCustomer
 
-▸ **mergeOnLogin**(`obj`): `void`
+▸ **getWishlistsByCustomer**(`obj`): `void`
 
-Merges the guest (anonymous) wishlist into the logged-in customer's wishlist.
-
-Call this on authenticated page loads. It is idempotent, does not block render,
-and fails silently to the shopper.
-
-The merge looks the customer up by email and 404s if that customer does not exist
-in TWC yet, so a 404 is treated as a silent no-op rather than an error. The
-backend does not mark the anonymous list as merged (WCO-4255 #6), so re-firing is
-guarded client-side for the rest of the session.
-
-Silent no-op (invokes `onSuccess(null)`, never `onError`) when the tenant feature
-flag is off, when a merge has already run this session, when no
-`anonymousWishlistId` is known, or when `customerEmail` is blank.
+Retrieves all wishlists for a customer, without their items. The response includes
+`totalItemsAllWishlists` and each wishlist's details; use [getWishlistItems](modules.md#getwishlistitems) to load
+the items for the wishlist the customer opens.
 
 #### Parameters
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
 | `obj` | `Object` | The configuration object. |
-| `obj.anonymousWishlistId?` | `string` | The anonymous wishlist id. Defaults to the id stored by [getOrCreateAnonymous](modules.md#getorcreateanonymous). |
-| `obj.customerEmail` | `string` | The logged-in customer's real email. Required — the backend looks the customer up by it. |
-| `obj.customerRef?` | `string` | Optional customer reference. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | Called on a completed merge, or with `null` when the call was a no-op. |
+| `obj.customerID?` | `string` | The TWC ID of the customer (one of customerID, customerRef or email must be defined). |
+| `obj.customerRef?` | `string` | The customer reference, i.e. the Shopify customer ID (one of customerID, customerRef or email must be defined). |
+| `obj.email?` | `string` | The customer's email (one of customerID, customerRef or email must be defined). |
+| `obj.lastItemId?` | `string` | The ID of the last wishlist retrieved. |
+| `obj.onError` | (`error`: `any`) => `void` | The callback function to handle an error response. |
+| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to handle a successful response. |
+| `obj.pageSize?` | `number` | The number of wishlists to retrieve per page. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.wishlistName?` | `string` | Optional name, used only if a new default list is created. |
-| `obj.wishlistRef?` | `string` | Optional target list to merge into; otherwise the customer's default list. |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 
 #### Returns
 
@@ -1096,37 +558,7 @@ flag is off, when a merge has already run this session, when no
 
 #### Defined in
 
-wishlistService/mergeOnLogin.ts:41
-
-___
-
-### resetWishlistItemFlag
-
-▸ **resetWishlistItemFlag**(`obj`): `void`
-
-Resets the wishlist item flag.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.notifyMe?` | `boolean` | Indicates whether to notify the user (either notifyMe or preRelease must be defined). |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on success. |
-| `obj.preRelease?` | `boolean` | Indicates whether the item is a pre-release (either notifyMe or preRelease must be defined). |
-| `obj.productRef?` | `string` | The product reference (either productRef or variantRef must be defined). |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.variantRef?` | `string` | The variant reference (either productRef or variantRef must be defined). |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/resetWishlistItemFlag.ts:22
+[src/wishlistService/getWishlistsByCustomer.ts:24](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/getWishlistsByCustomer.ts#L24)
 
 ___
 
@@ -1144,7 +576,7 @@ Updates a wishlist.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.updateWishlistBody` | `Object` | The body of the wishlist update request. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-wishlist-by-either-id-or-ref for information on the fields. |
 
 #### Returns
@@ -1153,63 +585,7 @@ Updates a wishlist.
 
 #### Defined in
 
-wishlistService/updateWishlist.ts:17
-
-___
-
-### updateWishlistByID
-
-▸ **updateWishlistByID**(`obj`): `void`
-
-Updates a wishlist by its ID.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.updateWishlistByIDBody` | `Object` | The updated wishlist data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#get-wishlist-by-id-or-wishlistref for information on the fields. |
-| `obj.wishlistID` | `string` | The ID of the wishlist to update. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/updateWishlistByID.ts:16
-
-___
-
-### updateWishlistByRef
-
-▸ **updateWishlistByRef**(`obj`): `void`
-
-Updates a wishlist by its reference.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.updateWishlistByIDBody` | `Object` | The updated wishlist data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#get-wishlist-by-id-or-wishlistref for information on the fields. |
-| `obj.wishlistRef` | `string` | The reference of the wishlist to update. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/updateWishlistByRef.ts:16
+[src/wishlistService/updateWishlist.ts:17](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/updateWishlist.ts#L17)
 
 ___
 
@@ -1227,7 +603,7 @@ Updates a wishlist item.
 | `obj.onError` | (`error`: `any`) => `void` | The callback function to be called when an error occurs during the update. |
 | `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called when the update is successful. |
 | `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
+| `obj.token` | `string` | An access token from your TWC server API client. Keep it on your server; never send it to a browser. |
 | `obj.updateWishlistItemBody` | `Object` | The body of the request containing the updated wishlist item data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-a-wishlist-item-by-wishlist-item-id for information on the fields. |
 
 #### Returns
@@ -1236,60 +612,4 @@ Updates a wishlist item.
 
 #### Defined in
 
-wishlistService/updateWishlistItem.ts:18
-
-___
-
-### updateWishlistItemByID
-
-▸ **updateWishlistItemByID**(`obj`): `void`
-
-Updates a wishlist item by its ID.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.updateWishlistItemBody` | `Object` | The updated wishlist item data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-a-wishlist-item-by-wishlist-item-id for information on the fields. |
-| `obj.wishlistItemID` | `string` | The ID of the wishlist item to update. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/updateWishlistItemByID.ts:17
-
-___
-
-### updateWishlistItemByRef
-
-▸ **updateWishlistItemByRef**(`obj`): `void`
-
-Updates a wishlist item by its reference.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `obj` | `Object` | The configuration object. |
-| `obj.onError` | (`error`: `any`) => `void` | The callback function to be called on error. |
-| `obj.onSuccess` | (`response`: `any`) => `void` | The callback function to be called on successful update. |
-| `obj.tenant` | `string` | The tenant identifier. |
-| `obj.token?` | `string` | The authentication token. If omitted, the SDK will use proxy auth (requires [initTWC](modules.md#inittwc)). |
-| `obj.updateWishlistItemBody` | `Object` | The updated wishlist item data. See https://the-wishlist-co.github.io/docs/wishlistSvcAPI.html#update-a-wishlist-item-by-wishlist-item-id for information on the fields. |
-| `obj.wishlistItemRef` | `string` | The reference of the wishlist item to update. |
-
-#### Returns
-
-`void`
-
-#### Defined in
-
-wishlistService/updateWishlistItemByRef.ts:17
+[src/wishlistService/updateWishlistItem.ts:18](https://github.com/The-Wishlist-Co/JavascriptSDK/blob/8233049bee20730ed06269576b79975161402e0a/src/wishlistService/updateWishlistItem.ts#L18)

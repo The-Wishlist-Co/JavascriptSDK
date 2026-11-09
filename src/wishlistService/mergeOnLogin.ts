@@ -33,7 +33,7 @@ let mergeInFlight = false;
  * @param obj.customerRef - Optional customer reference.
  * @param obj.wishlistRef - Optional target list to merge into; otherwise the customer's default list.
  * @param obj.wishlistName - Optional name, used only if a new default list is created.
- * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.token - An access token from your TWC server API client. Keep it on your server; never send it to a browser.
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - Called on a completed merge, or with `null` when the call was a no-op.
  * @param obj.onError - The callback function to be called on error.

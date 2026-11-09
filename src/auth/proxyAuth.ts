@@ -27,8 +27,7 @@ export async function resolveToken(token?: string): Promise<string> {
   const config = getConfig();
   if (!config) {
     throw new Error(
-      "TWC SDK: No token provided and proxy auth is not configured. " +
-        "Either pass a token directly or call initTWC({ shopDomain }) first."
+      "TWC SDK: no token provided. Pass an access token from your TWC server API client as `token`."
     );
   }
 

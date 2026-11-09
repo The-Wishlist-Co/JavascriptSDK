@@ -25,7 +25,7 @@ import { setAnonymousWishlistId } from "../anonymous/anonymousState";
  *
  * @group wishlistService
  * @param obj - The configuration object.
- * @param obj.token - The authentication token. If omitted, the SDK will use proxy auth (requires {@link initTWC}).
+ * @param obj.token - An access token from your TWC server API client. Keep it on your server; never send it to a browser.
  * @param obj.tenant - The tenant identifier.
  * @param obj.onSuccess - Called with the `WishlistDto`, or with `null` when the call was a no-op.
  * @param obj.onError - The callback function to be called on error.
